@@ -5,6 +5,7 @@ import numpy as np
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
 import time
+import base64
 import hashlib
 import json
 from streamlit_qrcode_scanner import qrcode_scanner
@@ -168,6 +169,28 @@ def call_api(payload):
         return False, {"message": f"HTTP {resp.status_code}"}
     except Exception as ex:
         return False, {"message": str(ex)}
+
+def upload_image_to_sheet(row_id: str, headcode: str, congdoan: str,
+                          nguoibao: str, image_bytes: bytes,
+                          mime_type: str, file_name: str):
+    """Upload ảnh base64 lên Drive qua Apps Script, ghi =IMAGE() vào ô H."""
+    try:
+        b64  = base64.b64encode(image_bytes).decode("utf-8")
+        resp = requests.post(WEB_APP_URL, json={
+            "action":       "upload_image",
+            "row_id":       row_id,
+            "headcode":     headcode,
+            "congdoan":     congdoan,
+            "nguoibao":     nguoibao,
+            "image_base64": b64,
+            "mime_type":    mime_type,
+            "file_name":    file_name,
+        }, timeout=60)
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception as ex:
+        return {"status": "error", "message": str(ex)}
+    return {"status": "error", "message": "Không thể kết nối"}
 
 def api_change_password(user: str, old_pass: str, new_pass: str):
     """Đổi mật khẩu người dùng qua Apps Script."""
