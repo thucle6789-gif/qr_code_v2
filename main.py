@@ -26,7 +26,7 @@ def normalize_role(role_str: str) -> str:
     s = s.replace(' ', '')
     return s  # 'sanxuat' hoặc 'nguoixem' hoặc ''
 
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz5-wxqgsgvEHCM5wgakFaNYz_M3IezI8_PzuiZg_-0Buo77wPI6Upq3k50YOM5cF7XdA/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxAs2HSdtPrcmHsrMYSeSrhoWQww8og3Pa6z1vB740MQ_yriHcDbuIfgGAam4R3D2NaYQ/exec"
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 DANH_SACH_CONG_DOAN = [
@@ -574,6 +574,21 @@ with col_scan:
             soluong = float(soluong_str.replace(",",".")) if soluong_str.strip() else None
         except ValueError:
             soluong = None
+
+        # Upload ảnh — chỉ hiển thị khi chế độ HOÀN THÀNH
+        uploaded_img = None
+        if is_active_live:
+            st.markdown("📷 **Hình ảnh hoàn thành** (tùy chọn)")
+            uploaded_img = st.file_uploader(
+                "Chọn hoặc chụp ảnh",
+                type=["jpg","jpeg","png","webp"],
+                accept_multiple_files=False,
+                key=f"img_upload_{st.session_state.form_key}",
+                label_visibility="collapsed"
+            )
+            if uploaded_img:
+                st.image(uploaded_img, caption="Xem trước ảnh", width=200)
+
         submit = st.form_submit_button(
             label=f"💾 XÁC NHẬN — {mode_label}", use_container_width=True)
 
@@ -658,6 +673,21 @@ with col_scan:
                     ok, resp_data = call_api(payload)
                 if ok and resp_data.get("status") == "ok":
                     del st.session_state.active_jobs[job_key]
+
+                    # Upload ảnh nếu người dùng đã chọn
+                    if uploaded_img is not None:
+                        img_bytes = uploaded_img.getvalue()
+                        mime      = uploaded_img.type or "image/jpeg"
+                        fname     = f"{headcode}_{congdoan}_{nguoibao}.jpg".replace(" ","_")
+                        with st.spinner("📤 Đang upload hình ảnh..."):
+                            img_result = upload_image_to_sheet(
+                                job_info.get("row_id",""), headcode, congdoan,
+                                nguoibao, img_bytes, mime, fname)
+                        if img_result.get("status") == "ok":
+                            st.success("🖼️ Đã ghi hình ảnh vào Sheet!")
+                        else:
+                            st.warning(f"⚠️ Upload ảnh thất bại: {img_result.get('message','')}")
+
                     st.session_state.last_action = {"type":"finish","headcode":headcode,"congdoan":congdoan}
                     st.session_state.qr_detected = ""; st.session_state.headcode_val = ""
                     st.session_state.lookup_headcode = ""; st.session_state.lookup_result = None
