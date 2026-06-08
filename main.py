@@ -32,23 +32,24 @@ WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUbdhSUwoHEZrJVJATPyoXzH
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 # Fallback nếu chưa load được từ server — đồng bộ với sheet CONG_DOAN
+# Bao gồm nhóm để lọc được ngay cả khi server chưa trả về dữ liệu
 DANH_SACH_CONG_DOAN_DEFAULT = [
-    "P013.1_CẮT CẦU",
-    "P013.2_CẮT TIA NƯỚC",
-    "P014.1_VÁT 45",
-    "P014.2_CMS_PROFILE",
-    "P014.3_CHẠY RON",
-    "P015.1_CHÀ NHÁM CẠNH",
-    "P015.2_CHÀ NHÁM BỀ MẶT ( HONED )",
-    "P015.3_ĐÁNH BÓNG MẶT",
-    "P016.1_GHÉP CẠNH ĐÁ 45 ĐỘ",
-    "P016.2_GHÉP CẠNH ĐÁ DÁN CHỒNG NHIỀU LỚP",
-    "P017.1_ĐÁNH BÓNG CẠNH & MỐI GHÉP",
-    "P017.2_LAYOUT SẢN PHẨM THỰC TẾ",
-    "P018_CHỐNG THẤM",
-    "P019_VỆ SINH & DÁN DECAL BẢO VỆ",
-    "P020_LẮP RÁP HOÀN THIỆN",
-    "P021_BAO BÌ ĐÓNG GÓI",
+    {"ten": "P013.1_CẮT CẦU",                          "nhom": "CTS"},
+    {"ten": "P013.2_CẮT TIA NƯỚC",                     "nhom": "CTS"},
+    {"ten": "P014.1_VÁT 45",                            "nhom": "CTS"},
+    {"ten": "P014.2_CMS_PROFILE",                       "nhom": "CTS"},
+    {"ten": "P014.3_CHẠY RON",                          "nhom": "CTS"},
+    {"ten": "P015.1_CHÀ NHÁM CẠNH",                     "nhom": "TỔ ĐÁ"},
+    {"ten": "P015.2_CHÀ NHÁM BỀ MẶT ( HONED )",         "nhom": "TỔ ĐÁ"},
+    {"ten": "P015.3_ĐÁNH BÓNG MẶT",                     "nhom": "TỔ ĐÁ"},
+    {"ten": "P016.1_GHÉP CẠNH ĐÁ 45 ĐỘ",               "nhom": "TỔ ĐÁ"},
+    {"ten": "P016.2_GHÉP CẠNH ĐÁ DÁN CHỒNG NHIỀU LỚP", "nhom": "TỔ ĐÁ"},
+    {"ten": "P017.1_ĐÁNH BÓNG CẠNH & MỐI GHÉP",        "nhom": "TỔ ĐÁ"},
+    {"ten": "P017.2_LAYOUT SẢN PHẨM THỰC TẾ",          "nhom": "TỔ ĐÁ"},
+    {"ten": "P018_CHỐNG THẤM",                          "nhom": "TỔ ĐÁ"},
+    {"ten": "P019_VỆ SINH & DÁN DECAL BẢO VỆ",         "nhom": "TỔ ĐÁ"},
+    {"ten": "P020_LẮP RÁP HOÀN THIỆN",                 "nhom": "TỔ ĐÁ"},
+    {"ten": "P021_BAO BÌ ĐÓNG GÓI",                    "nhom": "ĐÓNG KIỆN"},
 ]
 
 # =====================================================
@@ -522,14 +523,20 @@ if st.session_state.prefill_headcode:
 # REALTIME JOB STATE
 # =====================================================
 def get_congdoan_list(nhom: str = "") -> list:
-    """Lấy danh sách tên công đoạn, lọc theo nhóm nếu có."""
+    """Lấy danh sách tên công đoạn, lọc theo nhóm nếu có.
+    Dùng server data nếu có, fallback về DANH_SACH_CONG_DOAN_DEFAULT.
+    Cả 2 đều là list of dict {ten, nhom}.
+    """
     full_list = st.session_state.get("congdoan_list", [])
     if not full_list:
-        # Fallback về danh sách cứng
-        return DANH_SACH_CONG_DOAN_DEFAULT
-    if nhom:
-        filtered = [item["ten"] for item in full_list if item.get("nhom","").strip() == nhom.strip()]
+        full_list = DANH_SACH_CONG_DOAN_DEFAULT  # Fallback cũng là [{ten, nhom}]
+    if nhom.strip():
+        # Lọc chính xác theo nhóm
+        filtered = [item["ten"] for item in full_list
+                    if item.get("nhom","").strip() == nhom.strip()]
+        # Nếu không có công đoạn nào khớp nhóm → hiện tất cả
         return filtered if filtered else [item["ten"] for item in full_list]
+    # Không có nhóm → hiện tất cả
     return [item["ten"] for item in full_list]
 
 def get_current_job_state():
