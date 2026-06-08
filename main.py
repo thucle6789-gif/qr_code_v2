@@ -28,10 +28,11 @@ def normalize_role(role_str: str) -> str:
     s = s.replace(' ', '')
     return s  # 'sanxuat' hoặc 'nguoixem' hoặc ''
 
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw4fQSaaQ-iHs5ifO_D933pvqN-OZUTWz4rGe-WPBiWZGxkmQAu69aI2fS7L-mYafHQdQ/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUbdhSUwoHEZrJVJATPyoXzHh27Lf4FGyvnExVoZARYR9PCyCZdX5FnUJZTcJa3m9JPw/exec"
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
-DANH_SACH_CONG_DOAN = [
+# Fallback nếu chưa load được từ server
+DANH_SACH_CONG_DOAN_DEFAULT = [
     "P013_Tạo phôi và Sơchế","P014_Tinh chế và Định hình","P015_Chà nhám và Bề mặt",
     "P016_Lắp ráp và Liên kết","P017_Làm nguội và Hoàn thiện","P018_Sơn - Màu",
     "P019_Washing - Cleaning","P20_Lắp ráp hoàn thiện","P021_Đóng gói hoàn thành"
@@ -294,6 +295,8 @@ def search_qr_log(query: str):
 defaults = {
     # Auth — QUAN TRỌNG: logged_in phải là False khi chưa xác thực
     "logged_in":          False,
+    "current_nhom":       "",
+    "congdoan_list":      [],
     "current_user":       "",
     "current_ten":        "",
     "login_error":        "",
@@ -301,7 +304,7 @@ defaults = {
     "qr_detected":        "",
     "headcode_val":       "",
     "nguoibao_val":       "",
-    "congdoan_val":       DANH_SACH_CONG_DOAN[0],
+    "congdoan_val":       "",   # Sẽ được set sau khi load danh sách công đoạn
     "congdoan_tiep_val":  "",
     "soluong_val":        "",
     "form_key":           0,
@@ -379,12 +382,13 @@ if not st.session_state.logged_in:
                     _user = result.get("user", user_input.strip())
                     _ten  = result.get("ten",  user_input.strip())
                     _role = result.get("role", "").strip().lower()
-                    # Lưu session vào query_params (đồng bộ, 30 ngày)
+                    _nhom = result.get("nhom", "").strip()
                     save_session(_user, _ten, _role)
                     st.session_state.logged_in          = True
                     st.session_state.current_user       = _user
                     st.session_state.current_ten        = _ten
                     st.session_state.current_role       = _role
+                    st.session_state.current_nhom       = _nhom
                     st.session_state.nguoibao_val       = _ten
                     st.session_state.login_error        = ""
                     st.session_state.active_jobs_loaded = False
@@ -482,6 +486,8 @@ if not st.session_state.active_jobs_loaded:
                 jk = f"{item['headcode']}|{item['congdoan']}|{item['nguoibao'].strip().lower()}"
                 jobs[jk] = item
             st.session_state.active_jobs = jobs
+            if "congdoan_list" in init_data:
+                st.session_state.congdoan_list = init_data["congdoan_list"]
         st.session_state.active_jobs_loaded = True
 
 # =====================================================
@@ -502,6 +508,17 @@ if st.session_state.prefill_headcode:
 # =====================================================
 # REALTIME JOB STATE
 # =====================================================
+def get_congdoan_list(nhom: str = "") -> list:
+    """Lấy danh sách tên công đoạn, lọc theo nhóm nếu có."""
+    full_list = st.session_state.get("congdoan_list", [])
+    if not full_list:
+        # Fallback về danh sách cứng
+        return DANH_SACH_CONG_DOAN_DEFAULT
+    if nhom:
+        filtered = [item["ten"] for item in full_list if item.get("nhom","").strip() == nhom.strip()]
+        return filtered if filtered else [item["ten"] for item in full_list]
+    return [item["ten"] for item in full_list]
+
 def get_current_job_state():
     hc = st.session_state.headcode_val.strip()
     cd = st.session_state.congdoan_val
@@ -584,19 +601,30 @@ with col_scan:
             <div style="color:#e0e0e0; margin-top:4px;"><b>Sản phẩm:</b> {r.get('ten_san_pham','')}</div>
         </div>""", unsafe_allow_html=True)
 
-    # ── Công đoạn hiện tại ──
+    # ── Công đoạn hiện tại — chỉ hiện đúng nhóm của user ──
+    _nhom_user = st.session_state.get("current_nhom", "")
+    _ds_cd     = get_congdoan_list(_nhom_user)  # Lọc theo nhóm
+
+    # Hiển thị nhãn nhóm nếu có
+    if _nhom_user:
+        st.markdown(
+            f'<div style="font-size:0.72rem; color:#00e5a0; font-family:IBM Plex Mono,monospace;'
+            f' margin-bottom:4px;">📋 NHÓM: {_nhom_user}</div>',
+            unsafe_allow_html=True
+        )
+
     _cd_key = f"_congdoan_{st.session_state.form_key}"
     def on_congdoan_change():
         st.session_state.congdoan_val      = st.session_state[_cd_key]
         st.session_state.congdoan_tiep_val = ""
-    st.selectbox("Công đoạn hiện tại *", options=DANH_SACH_CONG_DOAN,
-        index=DANH_SACH_CONG_DOAN.index(st.session_state.congdoan_val)
-              if st.session_state.congdoan_val in DANH_SACH_CONG_DOAN else 0,
-        key=_cd_key, on_change=on_congdoan_change)
+    _cd_idx = _ds_cd.index(st.session_state.congdoan_val)               if st.session_state.congdoan_val in _ds_cd else 0
+    st.selectbox("Công đoạn hiện tại *", options=_ds_cd,
+        index=_cd_idx, key=_cd_key, on_change=on_congdoan_change)
 
-    # ── Công đoạn tiếp theo (loại trừ công đoạn hiện tại) ──
+    # ── Công đoạn tiếp theo — dùng toàn bộ danh sách (không lọc nhóm) ──
+    _ds_cd_all = get_congdoan_list("")  # Toàn bộ công đoạn
     _cd_tiep_opts = ["-- Chọn công đoạn tiếp theo --"] + [
-        cd for cd in DANH_SACH_CONG_DOAN if cd != st.session_state.congdoan_val
+        cd for cd in _ds_cd_all if cd != st.session_state.congdoan_val
     ]
     _cd_tiep_key = f"_congdoan_tiep_{st.session_state.form_key}"
     def on_cd_tiep_change():
