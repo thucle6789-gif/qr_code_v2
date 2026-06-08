@@ -50,6 +50,7 @@ DANH_SACH_CONG_DOAN_DEFAULT = [
     {"ten": "P019_VỆ SINH & DÁN DECAL BẢO VỆ",         "nhom": "TỔ ĐÁ"},
     {"ten": "P020_LẮP RÁP HOÀN THIỆN",                 "nhom": "TỔ ĐÁ"},
     {"ten": "P021_BAO BÌ ĐÓNG GÓI",                    "nhom": "ĐÓNG KIỆN"},
+    {"ten": "P022_NHẬP KHO THÀNH PHẨM",                "nhom": "ĐÓNG KIỆN"},
 ]
 
 # =====================================================
