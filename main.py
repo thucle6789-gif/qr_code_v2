@@ -66,6 +66,37 @@ st.set_page_config(page_title="Hệ Thống Quét QR Xưởng", layout="wide", i
 # =====================================================
 SESSION_SECRET = "qr-xuong-2024-secret"
 
+def compress_image(image_bytes: bytes, max_kb: int = 900) -> tuple[bytes, str]:
+    """Nén ảnh xuống dưới max_kb KB. Trả về (bytes, mime_type)."""
+    from PIL import Image
+    import io
+
+    img = Image.open(io.BytesIO(image_bytes))
+
+    # Chuyển sang RGB nếu cần (PNG có thể là RGBA)
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
+    # Resize nếu quá lớn — tối đa 1920px cạnh dài
+    max_side = 1920
+    w, h = img.size
+    if max(w, h) > max_side:
+        ratio = max_side / max(w, h)
+        img = img.resize((int(w * ratio), int(h * ratio)), Image.LANCZOS)
+
+    # Nén JPEG với quality giảm dần cho đến khi < max_kb
+    quality = 85
+    while quality >= 30:
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality, optimize=True)
+        size_kb = buf.tell() / 1024
+        if size_kb <= max_kb:
+            break
+        quality -= 10
+
+    buf.seek(0)
+    return buf.read(), "image/jpeg"
+
 def make_token(user: str, ten: str, ts: int) -> str:
     raw = f"{user}|{ten}|{ts}|{SESSION_SECRET}"
     return hashlib.sha256(raw.encode()).hexdigest()[:24]
@@ -797,8 +828,14 @@ with col_scan:
 
                         # Upload ảnh nếu người dùng đã chọn
                         if uploaded_img is not None:
-                            img_bytes = uploaded_img.getvalue()
-                            mime      = uploaded_img.type or "image/jpeg"
+                            raw_bytes = uploaded_img.getvalue()
+                            # Nén ảnh xuống dưới 900KB trước khi upload
+                            with st.spinner("🗜️ Đang nén ảnh..."):
+                                img_bytes, mime = compress_image(raw_bytes, max_kb=900)
+                            orig_kb = len(raw_bytes) / 1024
+                            comp_kb = len(img_bytes) / 1024
+                            if orig_kb > comp_kb + 10:
+                                st.caption(f"📉 Đã nén: {orig_kb:.0f}KB → {comp_kb:.0f}KB")
                             fname     = f"{headcode}_{congdoan}_{nguoibao}.jpg".replace(" ","_")
                             with st.spinner("📤 Đang upload hình ảnh..."):
                                 img_result = upload_image_to_sheet(
