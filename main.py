@@ -522,6 +522,14 @@ if not st.session_state.active_jobs_loaded:
             if "congdoan_list" in init_data:
                 st.session_state.congdoan_list = init_data["congdoan_list"]
         st.session_state.active_jobs_loaded = True
+        # Set congdoan_val về phần tử đầu tiên nếu đang rỗng
+        if not st.session_state.congdoan_val:
+            _nhom_init = st.session_state.get("current_nhom", "")
+            _ds_init   = [item["ten"] for item in st.session_state.congdoan_list
+                          if not _nhom_init or item.get("nhom","") == _nhom_init]                          if st.session_state.congdoan_list                          else [d["ten"] for d in DANH_SACH_CONG_DOAN_DEFAULT
+                               if not _nhom_init or d.get("nhom","") == _nhom_init]
+            if _ds_init:
+                st.session_state.congdoan_val = _ds_init[0]
 
 # =====================================================
 # PREFILL TỪ DANH SÁCH
@@ -560,7 +568,7 @@ def get_congdoan_list(nhom: str = "") -> list:
 
 def get_current_job_state():
     hc = st.session_state.headcode_val.strip()
-    cd = st.session_state.congdoan_val
+    cd = st.session_state.congdoan_val or ""
     nb = st.session_state.current_ten.strip()
     if hc and nb:
         jk = f"{hc}|{cd}|{nb.lower()}"
@@ -656,6 +664,9 @@ with col_scan:
     def on_congdoan_change():
         st.session_state.congdoan_val      = st.session_state[_cd_key]
         st.session_state.congdoan_tiep_val = ""
+    # Nếu congdoan_val rỗng hoặc không thuộc nhóm → tự động set về đầu danh sách
+    if not st.session_state.congdoan_val or st.session_state.congdoan_val not in _ds_cd:
+        st.session_state.congdoan_val = _ds_cd[0] if _ds_cd else ""
     _cd_idx = _ds_cd.index(st.session_state.congdoan_val)               if st.session_state.congdoan_val in _ds_cd else 0
     st.selectbox("Công đoạn hiện tại *", options=_ds_cd,
         index=_cd_idx, key=_cd_key, on_change=on_congdoan_change)
