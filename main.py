@@ -28,7 +28,7 @@ def normalize_role(role_str: str) -> str:
     s = s.replace(' ', '')
     return s  # 'sanxuat' hoặc 'nguoixem' hoặc ''
 
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUbdhSUwoHEZrJVJATPyoXzHh27Lf4FGyvnExVoZARYR9PCyCZdX5FnUJZTcJa3m9JPw/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxi59sI8S2PXitBGJSX_wacfG79m5STSVi6NmMsK6QSX6NLZESvJfqd6BGyc3oNjUcfBg/exec"
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 # Fallback nếu chưa load được từ server — đồng bộ với sheet CONG_DOAN
@@ -292,6 +292,22 @@ def do_login(user: str, password: str):
         pass
     return None
 
+def get_user_nhom(user: str) -> str:
+    """Lấy nhóm của user từ sheet Nguoi_dung dựa vào username.
+    Gọi khi restore session (reload trang) để lấy lại nhóm.
+    """
+    try:
+        resp = requests.get(WEB_APP_URL,
+            params={"action": "get_user_nhom", "user": user.strip()},
+            timeout=8)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("status") == "ok":
+                return data.get("nhom", "")
+    except Exception:
+        pass
+    return ""
+
 def search_qr_log(query: str):
     try:
         resp = requests.get(WEB_APP_URL, params={"action":"search","query":query.strip()}, timeout=15)
@@ -357,7 +373,9 @@ if not st.session_state.get("logged_in"):
         st.session_state.current_user       = saved["user"]
         st.session_state.current_ten        = saved["ten"]
         st.session_state.current_role       = saved.get("role", "")
-        st.session_state.current_nhom       = saved.get("nhom", "")
+        # Luôn lấy nhóm trực tiếp từ server khi restore — không phụ thuộc JS/localStorage
+        _restored_nhom = get_user_nhom(saved["user"])
+        st.session_state.current_nhom       = _restored_nhom
         st.session_state.nguoibao_val       = saved["ten"]
         st.session_state.active_jobs_loaded = False
 
