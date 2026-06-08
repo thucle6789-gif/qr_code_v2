@@ -45,7 +45,7 @@ DANH_SACH_CONG_DOAN_DEFAULT = [
     {"ten": "P016.1_GHÉP CẠNH ĐÁ 45 ĐỘ",               "nhom": "TỔ ĐÁ"},
     {"ten": "P016.2_GHÉP CẠNH ĐÁ DÁN CHỒNG NHIỀU LỚP", "nhom": "TỔ ĐÁ"},
     {"ten": "P017.1_ĐÁNH BÓNG CẠNH & MỐI GHÉP",        "nhom": "TỔ ĐÁ"},
-    {"ten": "P017.2_LAYOUT SẢN PHẨM THỰC TẾ",          "nhom": "TỔ ĐÁ"},
+    {"ten": "P017.2_LAYOUT SẢN PHẨM THỰC TẾ",          "nhom": "ĐÓNG KIỆN"},
     {"ten": "P018_CHỐNG THẤM",                          "nhom": "TỔ ĐÁ"},
     {"ten": "P019_VỆ SINH & DÁN DECAL BẢO VỆ",         "nhom": "TỔ ĐÁ"},
     {"ten": "P020_LẮP RÁP HOÀN THIỆN",                 "nhom": "TỔ ĐÁ"},
