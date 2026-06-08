@@ -200,7 +200,8 @@ div[data-testid="stFileUploaderDropzone"] { padding: 10px !important; }
 DATA_CACHE_TTL = 86400
 
 @st.cache_data(ttl=DATA_CACHE_TTL, show_spinner=False)
-def fetch_init_data():
+def fetch_init_data(cache_version: int = 0):
+    _ = cache_version  # Chỉ dùng để bust cache
     try:
         resp = requests.get(WEB_APP_URL, params={"action":"init"}, timeout=60)
         if resp.status_code == 200:
@@ -516,7 +517,7 @@ with col_h2:
 # =====================================================
 # Load congdoan_list LUÔN LUÔN từ cache (không phụ thuộc active_jobs_loaded)
 # → đảm bảo khi bấm "Làm mới dữ liệu DATA", danh sách mới được apply ngay
-_init_data_cached = fetch_init_data()
+_init_data_cached = fetch_init_data(st.session_state.get("cache_version", 0))
 if _init_data_cached and not st.session_state.congdoan_list:
     st.session_state.congdoan_list = _init_data_cached.get("congdoan_list", [])
 
@@ -892,17 +893,16 @@ with col_active:
             st.rerun()
     with col_r2:
         if st.button("🗄️ Làm mới dữ liệu DATA", use_container_width=True):
-            # Xóa cache Streamlit → lần render tiếp sẽ gọi lại API
-            fetch_init_data.clear()
-            # Reset toàn bộ state liên quan
+            # Tăng cache_version → fetch_init_data nhận tham số mới → Streamlit tạo cache entry mới
+            st.session_state.cache_version      = st.session_state.get("cache_version", 0) + 1
             st.session_state.congdoan_list      = []
             st.session_state.active_jobs_loaded = False
             st.session_state.lookup_headcode    = ""
             st.session_state.lookup_result      = None
             st.session_state.congdoan_val       = ""
-            st.rerun()  # rerun ngay — không toast để tránh chặn reload
+            st.rerun()
 
-    init_info = fetch_init_data()
+    init_info = fetch_init_data(st.session_state.get("cache_version", 0))
     loaded_at = init_info["loaded_at"] if init_info else None
     if loaded_at:
         st.markdown(f'<div style="font-size:0.72rem; color:#64748b; text-align:center; margin-bottom:8px;">'
