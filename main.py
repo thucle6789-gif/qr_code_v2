@@ -357,6 +357,7 @@ if not st.session_state.get("logged_in"):
         st.session_state.current_user       = saved["user"]
         st.session_state.current_ten        = saved["ten"]
         st.session_state.current_role       = saved.get("role", "")
+        st.session_state.current_nhom       = saved.get("nhom", "")
         st.session_state.nguoibao_val       = saved["ten"]
         st.session_state.active_jobs_loaded = False
 
