@@ -514,26 +514,34 @@ with col_h2:
 # =====================================================
 # LOAD INIT DATA (lần đầu)
 # =====================================================
+# Load congdoan_list LUÔN LUÔN từ cache (không phụ thuộc active_jobs_loaded)
+# → đảm bảo khi bấm "Làm mới dữ liệu DATA", danh sách mới được apply ngay
+_init_data_cached = fetch_init_data()
+if _init_data_cached and not st.session_state.congdoan_list:
+    st.session_state.congdoan_list = _init_data_cached.get("congdoan_list", [])
+
 if not st.session_state.active_jobs_loaded:
     with st.spinner("🔄 Đang khởi động hệ thống..."):
-        init_data = fetch_init_data()
+        init_data = _init_data_cached
         if init_data:
             jobs = {}
             for item in init_data.get("active_jobs_raw", []):
                 jk = f"{item['headcode']}|{item['congdoan']}|{item['nguoibao'].strip().lower()}"
                 jobs[jk] = item
             st.session_state.active_jobs = jobs
-            if "congdoan_list" in init_data:
-                st.session_state.congdoan_list = init_data["congdoan_list"]
+            st.session_state.congdoan_list = init_data.get("congdoan_list", [])
         st.session_state.active_jobs_loaded = True
-        # Set congdoan_val về phần tử đầu tiên nếu đang rỗng
-        if not st.session_state.congdoan_val:
-            _nhom_init = st.session_state.get("current_nhom", "")
-            _ds_init   = [item["ten"] for item in st.session_state.congdoan_list
-                          if not _nhom_init or item.get("nhom","") == _nhom_init]                          if st.session_state.congdoan_list                          else [d["ten"] for d in DANH_SACH_CONG_DOAN_DEFAULT
-                               if not _nhom_init or d.get("nhom","") == _nhom_init]
-            if _ds_init:
-                st.session_state.congdoan_val = _ds_init[0]
+
+# Set congdoan_val về phần tử đầu tiên phù hợp nhóm nếu đang rỗng
+if not st.session_state.congdoan_val:
+    _nhom_init = st.session_state.get("current_nhom", "")
+    _full = st.session_state.congdoan_list or DANH_SACH_CONG_DOAN_DEFAULT
+    _ds_init = [item["ten"] for item in _full
+                if not _nhom_init or item.get("nhom","").strip() == _nhom_init.strip()]
+    if not _ds_init:
+        _ds_init = [item["ten"] for item in _full]
+    if _ds_init:
+        st.session_state.congdoan_val = _ds_init[0]
 
 # =====================================================
 # PREFILL TỪ DANH SÁCH
@@ -884,9 +892,15 @@ with col_active:
             st.rerun()
     with col_r2:
         if st.button("🗄️ Làm mới dữ liệu DATA", use_container_width=True):
+            # Xóa cache Streamlit → lần render tiếp sẽ gọi lại API
             fetch_init_data.clear()
-            st.session_state.lookup_headcode = ""; st.session_state.lookup_result = None
-            st.success("✅ Đã xóa cache!"); st.rerun()
+            # Reset toàn bộ state liên quan
+            st.session_state.congdoan_list      = []
+            st.session_state.active_jobs_loaded = False
+            st.session_state.lookup_headcode    = ""
+            st.session_state.lookup_result      = None
+            st.session_state.congdoan_val       = ""
+            st.rerun()  # rerun ngay — không toast để tránh chặn reload
 
     init_info = fetch_init_data()
     loaded_at = init_info["loaded_at"] if init_info else None
