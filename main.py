@@ -647,232 +647,233 @@ with col_scan:
         st.error(f"❌ Mã **{st.session_state.lookup_headcode}** không tồn tại!")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Form
-    st.markdown('<div class="card"><div class="card-title">📝 Thông tin thao tác</div>', unsafe_allow_html=True)
+    if _is_san_xuat:
+        # Form
+        st.markdown('<div class="card"><div class="card-title">📝 Thông tin thao tác</div>', unsafe_allow_html=True)
 
-    # Thông tin sản phẩm
-    if st.session_state.lookup_result and st.session_state.lookup_result.get("status") == "found":
-        r = st.session_state.lookup_result
-        st.markdown(f"""
-        <div style="background:#0f2d1f; border:1px solid #00e5a0; border-radius:8px;
-                    padding:10px 14px; margin-bottom:12px; font-size:0.82rem;">
-            <div style="color:#00e5a0; font-family:IBM Plex Mono,monospace;
-                        font-size:0.7rem; letter-spacing:1px; margin-bottom:6px;">📦 THÔNG TIN SẢN PHẨM</div>
-            <div style="color:#e0e0e0;"><b>Công trình:</b> {r.get('ten_cong_trinh','')}</div>
-            <div style="color:#e0e0e0; margin-top:4px;"><b>Sản phẩm:</b> {r.get('ten_san_pham','')}</div>
-            <div style="color:#94a3b8; margin-top:4px;"><b>ĐVT:</b> {r.get('dvt','')}</div>
-        </div>""", unsafe_allow_html=True)
+        # Thông tin sản phẩm
+        if st.session_state.lookup_result and st.session_state.lookup_result.get("status") == "found":
+            r = st.session_state.lookup_result
+            st.markdown(f"""
+            <div style="background:#0f2d1f; border:1px solid #00e5a0; border-radius:8px;
+                        padding:10px 14px; margin-bottom:12px; font-size:0.82rem;">
+                <div style="color:#00e5a0; font-family:IBM Plex Mono,monospace;
+                            font-size:0.7rem; letter-spacing:1px; margin-bottom:6px;">📦 THÔNG TIN SẢN PHẨM</div>
+                <div style="color:#e0e0e0;"><b>Công trình:</b> {r.get('ten_cong_trinh','')}</div>
+                <div style="color:#e0e0e0; margin-top:4px;"><b>Sản phẩm:</b> {r.get('ten_san_pham','')}</div>
+                <div style="color:#94a3b8; margin-top:4px;"><b>ĐVT:</b> {r.get('dvt','')}</div>
+            </div>""", unsafe_allow_html=True)
 
-    # ── Công đoạn hiện tại — chỉ hiện đúng nhóm của user ──
-    _nhom_user = st.session_state.get("current_nhom", "")
-    _ds_cd     = get_congdoan_list(_nhom_user)  # Lọc theo nhóm
+        # ── Công đoạn hiện tại — chỉ hiện đúng nhóm của user ──
+        _nhom_user = st.session_state.get("current_nhom", "")
+        _ds_cd     = get_congdoan_list(_nhom_user)  # Lọc theo nhóm
 
-    # Hiển thị nhãn nhóm nếu có
-    if _nhom_user:
-        st.markdown(
-            f'<div style="font-size:0.72rem; color:#00e5a0; font-family:IBM Plex Mono,monospace;'
-            f' margin-bottom:4px;">📋 NHÓM: {_nhom_user}</div>',
-            unsafe_allow_html=True
-        )
-
-    _cd_key = f"_congdoan_{st.session_state.form_key}"
-    def on_congdoan_change():
-        st.session_state.congdoan_val      = st.session_state[_cd_key]
-        st.session_state.congdoan_tiep_val = ""
-    # Nếu congdoan_val rỗng hoặc không thuộc nhóm → tự động set về đầu danh sách
-    if not st.session_state.congdoan_val or st.session_state.congdoan_val not in _ds_cd:
-        st.session_state.congdoan_val = _ds_cd[0] if _ds_cd else ""
-    _cd_idx = _ds_cd.index(st.session_state.congdoan_val)               if st.session_state.congdoan_val in _ds_cd else 0
-    st.selectbox("Công đoạn hiện tại *", options=_ds_cd,
-        index=_cd_idx, key=_cd_key, on_change=on_congdoan_change)
-
-    # ── Công đoạn tiếp theo — dùng toàn bộ danh sách (không lọc nhóm) ──
-    _ds_cd_all = get_congdoan_list("")  # Toàn bộ công đoạn
-    _cd_tiep_opts = ["-- Chọn công đoạn tiếp theo --"] + [
-        cd for cd in _ds_cd_all if cd != st.session_state.congdoan_val
-    ]
-    _cd_tiep_key = f"_congdoan_tiep_{st.session_state.form_key}"
-    def on_cd_tiep_change():
-        v = st.session_state[_cd_tiep_key]
-        st.session_state.congdoan_tiep_val = "" if v.startswith("--") else v
-    _tiep_idx = 0
-    if st.session_state.congdoan_tiep_val in _cd_tiep_opts:
-        _tiep_idx = _cd_tiep_opts.index(st.session_state.congdoan_tiep_val)
-    st.selectbox("Công đoạn tiếp theo *", options=_cd_tiep_opts,
-        index=_tiep_idx, key=_cd_tiep_key, on_change=on_cd_tiep_change)
-
-    # ── Người vận hành: hiển thị readonly (từ tài khoản đăng nhập) ──
-    st.text_input("Người vận hành", value=st.session_state.current_ten,
-                  disabled=True, key=f"nb_display_{st.session_state.form_key}")
-
-    # Banner trạng thái
-    job_key_live, is_active_live = get_current_job_state()
-    if not st.session_state.headcode_val.strip():
-        st.info("📷 Quét QR hoặc nhập tay Headcode")
-    elif is_active_live:
-        job_info = st.session_state.active_jobs[job_key_live]
-        st.warning(f"🔄 Đang làm từ **{job_info['gio_bat_dau']}** → Xác nhận **HOÀN THÀNH**")
-    else:
-        st.info(f"🚀 Chưa bắt đầu → Xác nhận **BẮT ĐẦU**")
-    mode_label = "🏁 HOÀN THÀNH" if is_active_live else "▶️ BẮT ĐẦU"
-
-    # ── Headcode (ngoài form, realtime lookup) ──
-    _hc_key = f"_headcode_{st.session_state.form_key}"
-    def on_headcode_change():
-        new_hc = st.session_state[_hc_key].strip()
-        st.session_state.headcode_val = new_hc
-        st.session_state.qr_detected  = new_hc
-        if new_hc:
-            result = lookup_in_cache(new_hc)
-            st.session_state.lookup_headcode = new_hc
-            st.session_state.lookup_result   = result
-        else:
-            st.session_state.lookup_headcode = ""
-            st.session_state.lookup_result   = None
-
-    st.text_input("Headcode *", value=st.session_state.headcode_val,
-        key=_hc_key, on_change=on_headcode_change,
-        placeholder="Quét QR hoặc nhập tay...")
-
-    # Fallback lookup nếu chưa lookup
-    hc_live = st.session_state.headcode_val.strip()
-    if hc_live and hc_live != st.session_state.lookup_headcode:
-        result = lookup_in_cache(hc_live)
-        st.session_state.lookup_headcode = hc_live
-        st.session_state.lookup_result   = result
-
-    with st.form(key=f"main_form_{st.session_state.form_key}", clear_on_submit=False):
-        headcode = st.session_state.headcode_val.strip()
-        soluong_str = st.text_input("Số lượng", value=st.session_state.soluong_val,
-            placeholder="Nhập số lượng...",
-            key=f"soluong_{st.session_state.form_key}")
-        try:
-            soluong = float(soluong_str.replace(",",".")) if soluong_str.strip() else None
-        except ValueError:
-            soluong = None
-
-        # Upload ảnh — chỉ hiển thị khi chế độ HOÀN THÀNH
-        uploaded_img = None
-        if is_active_live:
-            st.markdown("📷 **Hình ảnh hoàn thành** (tùy chọn)")
-            uploaded_img = st.file_uploader(
-                "Chọn hoặc chụp ảnh",
-                type=["jpg","jpeg","png","webp"],
-                accept_multiple_files=False,
-                key=f"img_upload_{st.session_state.form_key}",
-                label_visibility="collapsed"
+        # Hiển thị nhãn nhóm nếu có
+        if _nhom_user:
+            st.markdown(
+                f'<div style="font-size:0.72rem; color:#00e5a0; font-family:IBM Plex Mono,monospace;'
+                f' margin-bottom:4px;">📋 NHÓM: {_nhom_user}</div>',
+                unsafe_allow_html=True
             )
-            if uploaded_img:
-                st.image(uploaded_img, caption="Xem trước ảnh", width=200)
 
-        submit = st.form_submit_button(
-            label=f"💾 XÁC NHẬN — {mode_label}", use_container_width=True)
+        _cd_key = f"_congdoan_{st.session_state.form_key}"
+        def on_congdoan_change():
+            st.session_state.congdoan_val      = st.session_state[_cd_key]
+            st.session_state.congdoan_tiep_val = ""
+        # Nếu congdoan_val rỗng hoặc không thuộc nhóm → tự động set về đầu danh sách
+        if not st.session_state.congdoan_val or st.session_state.congdoan_val not in _ds_cd:
+            st.session_state.congdoan_val = _ds_cd[0] if _ds_cd else ""
+        _cd_idx = _ds_cd.index(st.session_state.congdoan_val)               if st.session_state.congdoan_val in _ds_cd else 0
+        st.selectbox("Công đoạn hiện tại *", options=_ds_cd,
+            index=_cd_idx, key=_cd_key, on_change=on_congdoan_change)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+        # ── Công đoạn tiếp theo — dùng toàn bộ danh sách (không lọc nhóm) ──
+        _ds_cd_all = get_congdoan_list("")  # Toàn bộ công đoạn
+        _cd_tiep_opts = ["-- Chọn công đoạn tiếp theo --"] + [
+            cd for cd in _ds_cd_all if cd != st.session_state.congdoan_val
+        ]
+        _cd_tiep_key = f"_congdoan_tiep_{st.session_state.form_key}"
+        def on_cd_tiep_change():
+            v = st.session_state[_cd_tiep_key]
+            st.session_state.congdoan_tiep_val = "" if v.startswith("--") else v
+        _tiep_idx = 0
+        if st.session_state.congdoan_tiep_val in _cd_tiep_opts:
+            _tiep_idx = _cd_tiep_opts.index(st.session_state.congdoan_tiep_val)
+        st.selectbox("Công đoạn tiếp theo *", options=_cd_tiep_opts,
+            index=_tiep_idx, key=_cd_tiep_key, on_change=on_cd_tiep_change)
 
-    # ── SUBMIT ──
-    if submit:
-        nguoibao = st.session_state.current_ten.strip()  # Luôn lấy từ tài khoản
-        congdoan  = st.session_state.congdoan_val
+        # ── Người vận hành: hiển thị readonly (từ tài khoản đăng nhập) ──
+        st.text_input("Người vận hành", value=st.session_state.current_ten,
+                      disabled=True, key=f"nb_display_{st.session_state.form_key}")
 
-        _submit_key = f"{headcode}|{congdoan}|{nguoibao}"
-        _now = time.time()
-        _is_dup = (_submit_key == st.session_state.last_submit_key and
-                   (_now - st.session_state.last_submit_time) < 5.0)
-        if not _is_dup:
-            st.session_state.last_submit_key  = _submit_key
-            st.session_state.last_submit_time = _now
-
-        if _is_dup:
-            st.warning("⚠️ Thao tác vừa được ghi nhận, vui lòng chờ...")
-        elif not headcode:
-            st.error("Vui lòng quét hoặc điền Headcode.")
-        elif soluong is None:
-            st.error("Vui lòng nhập số lượng hợp lệ.")
-        elif headcode != st.session_state.lookup_headcode:
-            st.error("❌ Headcode chưa được kiểm tra. Vui lòng nhập lại.")
-            st.session_state.headcode_val = ""; st.session_state.lookup_headcode = ""
-            st.session_state.lookup_result = None; st.session_state.form_key += 1
-            st.rerun()
-        elif not st.session_state.lookup_result or st.session_state.lookup_result.get("status") != "found":
-            st.error("❌ Headcode không hợp lệ.")
-            st.session_state.headcode_val = ""; st.session_state.lookup_headcode = ""
-            st.session_state.lookup_result = None; st.session_state.form_key += 1
-            st.rerun()
+        # Banner trạng thái
+        job_key_live, is_active_live = get_current_job_state()
+        if not st.session_state.headcode_val.strip():
+            st.info("📷 Quét QR hoặc nhập tay Headcode")
+        elif is_active_live:
+            job_info = st.session_state.active_jobs[job_key_live]
+            st.warning(f"🔄 Đang làm từ **{job_info['gio_bat_dau']}** → Xác nhận **HOÀN THÀNH**")
         else:
-            congdoan_tiep = st.session_state.congdoan_tiep_val.strip()
-            job_key   = f"{headcode}|{congdoan}|{nguoibao.lower()}"
-            is_active = job_key in st.session_state.active_jobs
+            st.info(f"🚀 Chưa bắt đầu → Xác nhận **BẮT ĐẦU**")
+        mode_label = "🏁 HOÀN THÀNH" if is_active_live else "▶️ BẮT ĐẦU"
 
-            # Bắt buộc chọn công đoạn tiếp theo khi HOÀN THÀNH
-            if is_active and not congdoan_tiep:
-                st.error("❌ Vui lòng chọn Công đoạn tiếp theo trước khi hoàn thành.")
-            elif not is_active:
-                _lr = st.session_state.lookup_result or {}
-                payload = {
-                    "action":          "start",
-                    "headcode":        headcode,
-                    "ten_cong_trinh":  _lr.get("ten_cong_trinh", ""),
-                    "ten_san_pham":    _lr.get("ten_san_pham", ""),
-                    "dvt":             _lr.get("dvt", ""),
-                    "congdoan":        congdoan,
-                    "soluong":         soluong,
-                    "nguoibao":        nguoibao,
-                }
-                with st.spinner("Đang ghi nhận bắt đầu..."):
-                    ok, resp_data = call_api(payload)
-                if ok and resp_data.get("status") == "ok":
-                    st.session_state.active_jobs[job_key] = {
-                        "headcode":headcode,"congdoan":congdoan,"nguoibao":nguoibao,
-                        "soluong":soluong,"gio_bat_dau":resp_data.get("gio_bat_dau",""),
-                        "row_id":resp_data.get("row_id",""),
+        # ── Headcode (ngoài form, realtime lookup) ──
+        _hc_key = f"_headcode_{st.session_state.form_key}"
+        def on_headcode_change():
+            new_hc = st.session_state[_hc_key].strip()
+            st.session_state.headcode_val = new_hc
+            st.session_state.qr_detected  = new_hc
+            if new_hc:
+                result = lookup_in_cache(new_hc)
+                st.session_state.lookup_headcode = new_hc
+                st.session_state.lookup_result   = result
+            else:
+                st.session_state.lookup_headcode = ""
+                st.session_state.lookup_result   = None
+
+        st.text_input("Headcode *", value=st.session_state.headcode_val,
+            key=_hc_key, on_change=on_headcode_change,
+            placeholder="Quét QR hoặc nhập tay...")
+
+        # Fallback lookup nếu chưa lookup
+        hc_live = st.session_state.headcode_val.strip()
+        if hc_live and hc_live != st.session_state.lookup_headcode:
+            result = lookup_in_cache(hc_live)
+            st.session_state.lookup_headcode = hc_live
+            st.session_state.lookup_result   = result
+
+        with st.form(key=f"main_form_{st.session_state.form_key}", clear_on_submit=False):
+            headcode = st.session_state.headcode_val.strip()
+            soluong_str = st.text_input("Số lượng", value=st.session_state.soluong_val,
+                placeholder="Nhập số lượng...",
+                key=f"soluong_{st.session_state.form_key}")
+            try:
+                soluong = float(soluong_str.replace(",",".")) if soluong_str.strip() else None
+            except ValueError:
+                soluong = None
+
+            # Upload ảnh — chỉ hiển thị khi chế độ HOÀN THÀNH
+            uploaded_img = None
+            if is_active_live:
+                st.markdown("📷 **Hình ảnh hoàn thành** (tùy chọn)")
+                uploaded_img = st.file_uploader(
+                    "Chọn hoặc chụp ảnh",
+                    type=["jpg","jpeg","png","webp"],
+                    accept_multiple_files=False,
+                    key=f"img_upload_{st.session_state.form_key}",
+                    label_visibility="collapsed"
+                )
+                if uploaded_img:
+                    st.image(uploaded_img, caption="Xem trước ảnh", width=200)
+
+            submit = st.form_submit_button(
+                label=f"💾 XÁC NHẬN — {mode_label}", use_container_width=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── SUBMIT ──
+        if submit:
+            nguoibao = st.session_state.current_ten.strip()  # Luôn lấy từ tài khoản
+            congdoan  = st.session_state.congdoan_val
+
+            _submit_key = f"{headcode}|{congdoan}|{nguoibao}"
+            _now = time.time()
+            _is_dup = (_submit_key == st.session_state.last_submit_key and
+                       (_now - st.session_state.last_submit_time) < 5.0)
+            if not _is_dup:
+                st.session_state.last_submit_key  = _submit_key
+                st.session_state.last_submit_time = _now
+
+            if _is_dup:
+                st.warning("⚠️ Thao tác vừa được ghi nhận, vui lòng chờ...")
+            elif not headcode:
+                st.error("Vui lòng quét hoặc điền Headcode.")
+            elif soluong is None:
+                st.error("Vui lòng nhập số lượng hợp lệ.")
+            elif headcode != st.session_state.lookup_headcode:
+                st.error("❌ Headcode chưa được kiểm tra. Vui lòng nhập lại.")
+                st.session_state.headcode_val = ""; st.session_state.lookup_headcode = ""
+                st.session_state.lookup_result = None; st.session_state.form_key += 1
+                st.rerun()
+            elif not st.session_state.lookup_result or st.session_state.lookup_result.get("status") != "found":
+                st.error("❌ Headcode không hợp lệ.")
+                st.session_state.headcode_val = ""; st.session_state.lookup_headcode = ""
+                st.session_state.lookup_result = None; st.session_state.form_key += 1
+                st.rerun()
+            else:
+                congdoan_tiep = st.session_state.congdoan_tiep_val.strip()
+                job_key   = f"{headcode}|{congdoan}|{nguoibao.lower()}"
+                is_active = job_key in st.session_state.active_jobs
+
+                # Bắt buộc chọn công đoạn tiếp theo khi HOÀN THÀNH
+                if is_active and not congdoan_tiep:
+                    st.error("❌ Vui lòng chọn Công đoạn tiếp theo trước khi hoàn thành.")
+                elif not is_active:
+                    _lr = st.session_state.lookup_result or {}
+                    payload = {
+                        "action":          "start",
+                        "headcode":        headcode,
+                        "ten_cong_trinh":  _lr.get("ten_cong_trinh", ""),
+                        "ten_san_pham":    _lr.get("ten_san_pham", ""),
+                        "dvt":             _lr.get("dvt", ""),
+                        "congdoan":        congdoan,
+                        "soluong":         soluong,
+                        "nguoibao":        nguoibao,
                     }
-                    st.session_state.last_action = {"type":"start","headcode":headcode,"congdoan":congdoan}
-                    st.session_state.qr_detected = ""; st.session_state.headcode_val = ""
-                    st.session_state.lookup_headcode = ""; st.session_state.lookup_result = None
-                    st.session_state.soluong_val = ""; st.session_state.form_key += 1
-                    st.rerun()
-                elif resp_data.get("status") == "duplicate":
-                    st.warning("⚠️ Mã đã được ghi nhận. Đang đồng bộ...")
-                    st.session_state.active_jobs = fetch_active_jobs_from_sheet()
-                    st.session_state.form_key += 1; st.rerun()
-                else:
-                    st.error(f"Lỗi: {resp_data.get('message','Không rõ')}")
-            elif is_active:
-                job_info = st.session_state.active_jobs[job_key]
-                payload  = {"action":"finish","headcode":headcode,"congdoan":congdoan,
-                            "congdoan_tiep": congdoan_tiep,
-                            "soluong":soluong,"nguoibao":nguoibao,
-                            "gio_bat_dau":job_info["gio_bat_dau"],
-                            "gio_hoan_thanh":datetime.now(VN_TZ).strftime("%d/%m/%Y %H:%M:%S"),
-                            "row_id":job_info.get("row_id","")}
-                with st.spinner("Đang cập nhật hoàn thành..."):
-                    ok, resp_data = call_api(payload)
-                if ok and resp_data.get("status") == "ok":
-                    del st.session_state.active_jobs[job_key]
+                    with st.spinner("Đang ghi nhận bắt đầu..."):
+                        ok, resp_data = call_api(payload)
+                    if ok and resp_data.get("status") == "ok":
+                        st.session_state.active_jobs[job_key] = {
+                            "headcode":headcode,"congdoan":congdoan,"nguoibao":nguoibao,
+                            "soluong":soluong,"gio_bat_dau":resp_data.get("gio_bat_dau",""),
+                            "row_id":resp_data.get("row_id",""),
+                        }
+                        st.session_state.last_action = {"type":"start","headcode":headcode,"congdoan":congdoan}
+                        st.session_state.qr_detected = ""; st.session_state.headcode_val = ""
+                        st.session_state.lookup_headcode = ""; st.session_state.lookup_result = None
+                        st.session_state.soluong_val = ""; st.session_state.form_key += 1
+                        st.rerun()
+                    elif resp_data.get("status") == "duplicate":
+                        st.warning("⚠️ Mã đã được ghi nhận. Đang đồng bộ...")
+                        st.session_state.active_jobs = fetch_active_jobs_from_sheet()
+                        st.session_state.form_key += 1; st.rerun()
+                    else:
+                        st.error(f"Lỗi: {resp_data.get('message','Không rõ')}")
+                elif is_active:
+                    job_info = st.session_state.active_jobs[job_key]
+                    payload  = {"action":"finish","headcode":headcode,"congdoan":congdoan,
+                                "congdoan_tiep": congdoan_tiep,
+                                "soluong":soluong,"nguoibao":nguoibao,
+                                "gio_bat_dau":job_info["gio_bat_dau"],
+                                "gio_hoan_thanh":datetime.now(VN_TZ).strftime("%d/%m/%Y %H:%M:%S"),
+                                "row_id":job_info.get("row_id","")}
+                    with st.spinner("Đang cập nhật hoàn thành..."):
+                        ok, resp_data = call_api(payload)
+                    if ok and resp_data.get("status") == "ok":
+                        del st.session_state.active_jobs[job_key]
 
-                    # Upload ảnh nếu người dùng đã chọn
-                    if uploaded_img is not None:
-                        img_bytes = uploaded_img.getvalue()
-                        mime      = uploaded_img.type or "image/jpeg"
-                        fname     = f"{headcode}_{congdoan}_{nguoibao}.jpg".replace(" ","_")
-                        with st.spinner("📤 Đang upload hình ảnh..."):
-                            img_result = upload_image_to_sheet(
-                                job_info.get("row_id",""), headcode, congdoan,
-                                nguoibao, img_bytes, mime, fname)
-                        if img_result.get("status") == "ok":
-                            st.success("🖼️ Đã ghi hình ảnh vào Sheet!")
-                        else:
-                            st.warning(f"⚠️ Upload ảnh thất bại: {img_result.get('message','')}")
+                        # Upload ảnh nếu người dùng đã chọn
+                        if uploaded_img is not None:
+                            img_bytes = uploaded_img.getvalue()
+                            mime      = uploaded_img.type or "image/jpeg"
+                            fname     = f"{headcode}_{congdoan}_{nguoibao}.jpg".replace(" ","_")
+                            with st.spinner("📤 Đang upload hình ảnh..."):
+                                img_result = upload_image_to_sheet(
+                                    job_info.get("row_id",""), headcode, congdoan,
+                                    nguoibao, img_bytes, mime, fname)
+                            if img_result.get("status") == "ok":
+                                st.success("🖼️ Đã ghi hình ảnh vào Sheet!")
+                            else:
+                                st.warning(f"⚠️ Upload ảnh thất bại: {img_result.get('message','')}")
 
-                    st.session_state.last_action = {"type":"finish","headcode":headcode,"congdoan":congdoan}
-                    st.session_state.qr_detected = ""; st.session_state.headcode_val = ""
-                    st.session_state.lookup_headcode = ""; st.session_state.lookup_result = None
-                    st.session_state.soluong_val = ""; st.session_state.congdoan_tiep_val = ""
-                    st.session_state.form_key += 1
-                    st.rerun()
-                else:
-                    st.error(f"Lỗi: {resp_data.get('message','Không rõ')}")
+                        st.session_state.last_action = {"type":"finish","headcode":headcode,"congdoan":congdoan}
+                        st.session_state.qr_detected = ""; st.session_state.headcode_val = ""
+                        st.session_state.lookup_headcode = ""; st.session_state.lookup_result = None
+                        st.session_state.soluong_val = ""; st.session_state.congdoan_tiep_val = ""
+                        st.session_state.form_key += 1
+                        st.rerun()
+                    else:
+                        st.error(f"Lỗi: {resp_data.get('message','Không rõ')}")
 
     # end if _is_san_xuat
 
