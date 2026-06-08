@@ -31,11 +31,24 @@ def normalize_role(role_str: str) -> str:
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyUbdhSUwoHEZrJVJATPyoXzHh27Lf4FGyvnExVoZARYR9PCyCZdX5FnUJZTcJa3m9JPw/exec"
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
-# Fallback nếu chưa load được từ server
+# Fallback nếu chưa load được từ server — đồng bộ với sheet CONG_DOAN
 DANH_SACH_CONG_DOAN_DEFAULT = [
-    "P013_Tạo phôi và Sơchế","P014_Tinh chế và Định hình","P015_Chà nhám và Bề mặt",
-    "P016_Lắp ráp và Liên kết","P017_Làm nguội và Hoàn thiện","P018_Sơn - Màu",
-    "P019_Washing - Cleaning","P20_Lắp ráp hoàn thiện","P021_Đóng gói hoàn thành"
+    "P013.1_CẮT CẦU",
+    "P013.2_CẮT TIA NƯỚC",
+    "P014.1_VÁT 45",
+    "P014.2_CMS_PROFILE",
+    "P014.3_CHẠY RON",
+    "P015.1_CHÀ NHÁM CẠNH",
+    "P015.2_CHÀ NHÁM BỀ MẶT ( HONED )",
+    "P015.3_ĐÁNH BÓNG MẶT",
+    "P016.1_GHÉP CẠNH ĐÁ 45 ĐỘ",
+    "P016.2_GHÉP CẠNH ĐÁ DÁN CHỒNG NHIỀU LỚP",
+    "P017.1_ĐÁNH BÓNG CẠNH & MỐI GHÉP",
+    "P017.2_LAYOUT SẢN PHẨM THỰC TẾ",
+    "P018_CHỐNG THẤM",
+    "P019_VỆ SINH & DÁN DECAL BẢO VỆ",
+    "P020_LẮP RÁP HOÀN THIỆN",
+    "P021_BAO BÌ ĐÓNG GÓI",
 ]
 
 # =====================================================
