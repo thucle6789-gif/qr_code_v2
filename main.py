@@ -28,7 +28,7 @@ def normalize_role(role_str: str) -> str:
     s = s.replace(' ', '')
     return s  # 'sanxuat' hoặc 'nguoixem' hoặc ''
 
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxi59sI8S2PXitBGJSX_wacfG79m5STSVi6NmMsK6QSX6NLZESvJfqd6BGyc3oNjUcfBg/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyt3xF60f0kd_XY2SZEXJI3PrWR0VBQg-_fcpwRgkdYtr3WDFa6-83a3376drvYxAfKfA/exec"
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 # Fallback nếu chưa load được từ server — đồng bộ với sheet CONG_DOAN
@@ -210,7 +210,11 @@ def fetch_init_data():
                 for row in data.get("records", []):
                     hc = str(row[0]).strip()
                     if hc:
-                        hc_dict[hc] = {"ten_cong_trinh": row[1], "ten_san_pham": row[2]}
+                        hc_dict[hc] = {
+                            "ten_cong_trinh": row[1] if len(row) > 1 else "",
+                            "ten_san_pham":   row[2] if len(row) > 2 else "",
+                            "dvt":            row[3] if len(row) > 3 else "",
+                        }
                 return {"active_jobs_raw": data.get("active_jobs",[]), "hc_dict": hc_dict,
                         "loaded_at": datetime.now(VN_TZ).strftime("%d/%m/%Y %H:%M")}
     except Exception:
@@ -646,6 +650,7 @@ with col_scan:
                         font-size:0.7rem; letter-spacing:1px; margin-bottom:6px;">📦 THÔNG TIN SẢN PHẨM</div>
             <div style="color:#e0e0e0;"><b>Công trình:</b> {r.get('ten_cong_trinh','')}</div>
             <div style="color:#e0e0e0; margin-top:4px;"><b>Sản phẩm:</b> {r.get('ten_san_pham','')}</div>
+            <div style="color:#94a3b8; margin-top:4px;"><b>ĐVT:</b> {r.get('dvt','')}</div>
         </div>""", unsafe_allow_html=True)
 
     # ── Công đoạn hiện tại — chỉ hiện đúng nhóm của user ──
@@ -799,6 +804,7 @@ with col_scan:
                     "headcode":        headcode,
                     "ten_cong_trinh":  _lr.get("ten_cong_trinh", ""),
                     "ten_san_pham":    _lr.get("ten_san_pham", ""),
+                    "dvt":             _lr.get("dvt", ""),
                     "congdoan":        congdoan,
                     "soluong":         soluong,
                     "nguoibao":        nguoibao,
