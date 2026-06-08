@@ -9,7 +9,6 @@ import base64
 import hashlib
 import json
 from streamlit_qrcode_scanner import qrcode_scanner
-import streamlit.components.v1 as components
 
 # =====================================================
 # CẤU HÌNH
@@ -66,82 +65,24 @@ st.set_page_config(page_title="Hệ Thống Quét QR Xưởng", layout="wide", i
 #   - Hoạt động kể cả khi PWA reset URL về gốc
 # =====================================================
 SESSION_SECRET = "qr-xuong-2024-secret"
-LS_KEY = "qr_session_v3"
 
 def make_token(user: str, ten: str, ts: int) -> str:
     raw = f"{user}|{ten}|{ts}|{SESSION_SECRET}"
     return hashlib.sha256(raw.encode()).hexdigest()[:24]
 
-def save_session(user: str, ten: str, role: str):
-    """Lưu session vào localStorage QUA JS component + query_params."""
+def save_session(user: str, ten: str, role: str, nhom: str = ""):
+    """Lưu session vào query_params (không dùng JS/localStorage)."""
     ts    = int(time.time())
     token = make_token(user, ten, ts)
-    payload = json.dumps({"t": token, "u": user, "n": ten,
-                           "r": role, "ts": str(ts)})
-    # Ghi vào localStorage qua component (tự động inject vào URL params)
-    components.html(f"""
-    <script>
-    localStorage.setItem('{LS_KEY}', {json.dumps(payload)});
-    const p = JSON.parse(localStorage.getItem('{LS_KEY}') || '{{}}');
-    const url = new URL(window.top.location.href);
-    url.searchParams.set('t',  p.t  || '');
-    url.searchParams.set('u',  p.u  || '');
-    url.searchParams.set('n',  p.n  || '');
-    url.searchParams.set('r',  p.r  || '');
-    url.searchParams.set('ts', p.ts || '');
-    window.top.history.replaceState(null, '', url.toString());
-    </script>
-    """, height=0)
-    # Cũng ghi vào query_params để Python đọc ngay lập tức
     st.query_params.update({"t": token, "u": user, "n": ten,
-                             "r": role, "ts": str(ts)})
+                             "r": role, "g": nhom, "ts": str(ts)})
 
 def clear_session():
-    """Xóa session khỏi localStorage và query_params."""
-    components.html(f"""
-    <script>
-    localStorage.removeItem('{LS_KEY}');
-    const url = new URL(window.top.location.href);
-    ['t','u','n','r','ts'].forEach(k => url.searchParams.delete(k));
-    window.top.history.replaceState(null, '', url.toString());
-    </script>
-    """, height=0)
+    """Xóa session khỏi query_params."""
     st.query_params.clear()
-
 def inject_session_from_localstorage():
-    """
-    Inject JS để đọc localStorage → ghi vào URL params.
-    Gọi ĐẦU TIÊN trước mọi thứ — khi PWA mở lại URL bị reset,
-    JS sẽ đọc localStorage và replaceState URL với params đầy đủ,
-    Streamlit rerun và Python đọc được session.
-    """
-    components.html(f"""
-    <script>
-    (function() {{
-        var raw = localStorage.getItem('{LS_KEY}');
-        if (!raw) return;
-        try {{
-            var p = JSON.parse(raw);
-            if (!p.t || !p.u || !p.ts) return;
-            // Kiểm tra hạn 30 ngày
-            if ((Date.now()/1000 - parseInt(p.ts)) > 30*86400) {{
-                localStorage.removeItem('{LS_KEY}');
-                return;
-            }}
-            var url = new URL(window.top.location.href);
-            // Chỉ inject nếu URL chưa có params
-            if (!url.searchParams.get('t')) {{
-                url.searchParams.set('t',  p.t);
-                url.searchParams.set('u',  p.u);
-                url.searchParams.set('n',  p.n || '');
-                url.searchParams.set('r',  p.r || '');
-                url.searchParams.set('ts', p.ts);
-                window.top.location.replace(url.toString());
-            }}
-        }} catch(e) {{}}
-    }})();
-    </script>
-    """, height=0)
+    """Không dùng nữa."""
+    pass
 
 def read_session():
     """Đọc session từ query_params (đã được JS inject từ localStorage)."""
