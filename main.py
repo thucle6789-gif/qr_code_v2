@@ -755,7 +755,7 @@ with col_scan:
             # Upload ảnh — chỉ hiển thị khi chế độ HOÀN THÀNH
             uploaded_img = None
             if is_active_live:
-                st.markdown("📷 **Hình ảnh hoàn thành** (tùy chọn)")
+                st.markdown("📷 **Hình ảnh hoàn thành** *(bắt buộc)*")
                 uploaded_img = st.file_uploader(
                     "Chọn hoặc chụp ảnh",
                     type=["jpg","jpeg","png","webp"],
@@ -808,6 +808,8 @@ with col_scan:
                 # Bắt buộc chọn công đoạn tiếp theo khi HOÀN THÀNH
                 if is_active and not congdoan_tiep:
                     st.error("❌ Vui lòng chọn Công đoạn tiếp theo trước khi hoàn thành.")
+                elif is_active and uploaded_img is None:
+                    st.error("❌ Vui lòng chụp hoặc chọn Hình ảnh trước khi hoàn thành.")
                 elif not is_active:
                     _lr = st.session_state.lookup_result or {}
                     payload = {
