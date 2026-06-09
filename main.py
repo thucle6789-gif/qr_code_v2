@@ -292,6 +292,16 @@ div[data-testid="stFileUploaderDropzone"] { padding: 10px !important; }
 
 /* ── Dividers ── */
 hr { border-color: #e2e8f0 !important; }
+
+/* ── Nút Đổi MK & Đăng xuất: không nền, nhỏ gọn ── */
+/* Nhắm 2 nút trong _c_actions dùng :has() */
+.action-row ~ div .stButton > button,
+div[class*="action-row"] .stButton > button {
+    background: transparent !important; border: none !important;
+    box-shadow: none !important; color: #1d4ed8 !important;
+    font-size: 0.78rem !important; height: 30px !important;
+    font-weight: 600 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -570,33 +580,36 @@ st.markdown(f"""
   </div>
 </div>""", unsafe_allow_html=True)
 
-# Nút Đổi mật khẩu & Đăng xuất — nằm ngay dưới header, dạng nhỏ không nền
-st.markdown("""<style>
-div[data-testid="column"]:nth-child(1) .stButton > button,
-div[data-testid="column"]:nth-child(2) .stButton > button {
-    background: transparent !important;
-    border: none !important; box-shadow: none !important;
-    color: #1d4ed8 !important; font-size: 0.82rem !important;
-    height: 36px !important; padding: 0 8px !important;
-    font-weight: 600 !important;
-}
-div[data-testid="column"]:nth-child(1) .stButton > button:hover,
-div[data-testid="column"]:nth-child(2) .stButton > button:hover {
-    background: #eff6ff !important; transform: none !important;
-}
-</style>""", unsafe_allow_html=True)
-# Nút Đổi mật khẩu & Đăng xuất — nằm ngay dưới header
-_col_mk, _col_dx, _col_empty = st.columns([1, 1, 4])
-with _col_mk:
-    if st.button("🔑 Đổi mật khẩu", use_container_width=True):
-        st.session_state.show_change_pass = not st.session_state.get("show_change_pass", False)
-        st.rerun()
-with _col_dx:
-    if st.button("🚪 Đăng xuất", use_container_width=True):
-        clear_session()
-        for k in list(st.session_state.keys()):
-            del st.session_state[k]
-        st.rerun()
+# Nút Đổi MK & Đăng xuất — nằm bên phải, dùng st.markdown + checkbox trick
+_c_space, _c_actions = st.columns([3, 2])
+with _c_actions:
+    # CSS override chỉ áp dụng cho 2 nút ngay sau đây
+    st.markdown("""<style>
+    .btn-action > div > div > div > button {
+        background: transparent !important; border: 1px solid #bfdbfe !important;
+        box-shadow: none !important; color: #1d4ed8 !important;
+        font-size: 0.75rem !important; height: 28px !important;
+        padding: 0 10px !important; font-weight: 600 !important;
+        border-radius: 14px !important; min-height: 0 !important;
+    }
+    .btn-action > div > div > div > button:hover {
+        background: #eff6ff !important; transform: none !important;
+        box-shadow: none !important;
+    }
+    </style>""", unsafe_allow_html=True)
+    st.markdown('<div class="btn-action">', unsafe_allow_html=True)
+    _ca1, _ca2 = st.columns(2)
+    with _ca1:
+        if st.button("🔑 Đổi mật khẩu", use_container_width=True, key="btn_doi_mk"):
+            st.session_state.show_change_pass = not st.session_state.get("show_change_pass", False)
+            st.rerun()
+    with _ca2:
+        if st.button("🚪 Đăng xuất", use_container_width=True, key="btn_dang_xuat"):
+            clear_session()
+            for k in list(st.session_state.keys()):
+                del st.session_state[k]
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ── Form đổi mật khẩu (hiện/ẩn theo toggle) ──
     if st.session_state.get("show_change_pass"):
