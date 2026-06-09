@@ -585,6 +585,63 @@ with col_scan:
             </div>
         </div>""", unsafe_allow_html=True)
 
+        # ── Bảng danh sách mã đang làm (chế độ xem) ──
+        _all_jobs = st.session_state.active_jobs
+        if _all_jobs:
+            import pandas as pd
+            import io as _io
+
+            # Tạo DataFrame từ active_jobs
+            rows_df = []
+            for _jk, _job in _all_jobs.items():
+                rows_df.append({
+                    "Headcode":       _job.get("headcode", ""),
+                    "Công đoạn":      _job.get("congdoan", ""),
+                    "Người vận hành": _job.get("nguoibao", ""),
+                    "Số lượng":       _job.get("soluong", ""),
+                    "Giờ bắt đầu":    _job.get("gio_bat_dau", ""),
+                })
+            df_jobs = pd.DataFrame(rows_df)
+
+            # Hiển thị bảng dạng Excel
+            st.markdown(f"**📋 Đang xử lý: {len(rows_df)} mã hàng**")
+            st.dataframe(
+                df_jobs,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Headcode":       st.column_config.TextColumn("Headcode", width="medium"),
+                    "Công đoạn":      st.column_config.TextColumn("Công đoạn", width="large"),
+                    "Người vận hành": st.column_config.TextColumn("Người vận hành", width="medium"),
+                    "Số lượng":       st.column_config.NumberColumn("Số lượng", width="small"),
+                    "Giờ bắt đầu":    st.column_config.TextColumn("Giờ bắt đầu", width="medium"),
+                },
+                height=min(400, 40 + len(rows_df) * 36),
+            )
+
+            # Nút tải Excel
+            _excel_buf = _io.BytesIO()
+            with pd.ExcelWriter(_excel_buf, engine="openpyxl") as _writer:
+                df_jobs.to_excel(_writer, index=False, sheet_name="Đang xử lý")
+                # Tự động điều chỉnh độ rộng cột
+                _ws = _writer.sheets["Đang xử lý"]
+                for _col in _ws.columns:
+                    _max_len = max(len(str(_cell.value or "")) for _cell in _col) + 4
+                    _ws.column_dimensions[_col[0].column_letter].width = min(_max_len, 40)
+            _excel_buf.seek(0)
+
+            from datetime import datetime as _dt
+            _fname = f"dang_xu_ly_{_dt.now().strftime('%Y%m%d_%H%M')}.xlsx"
+            st.download_button(
+                label="📥 Tải file Excel",
+                data=_excel_buf,
+                file_name=_fname,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+        else:
+            st.markdown('<p style="color:#64748b; font-size:0.85rem; font-family:IBM Plex Mono,monospace;">— Chưa có mã hàng nào đang xử lý —</p>', unsafe_allow_html=True)
+
     if _is_san_xuat:
         # Camera — bật/tắt bằng nút, quét realtime không cần chụp ảnh
         st.markdown('<div class="card"><div class="card-title">📷 Quét mã QR</div>', unsafe_allow_html=True)
