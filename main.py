@@ -174,10 +174,11 @@ html, body, [class*="css"] {
     animation: pulse 2s infinite;
 }
 .user-badge {
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.5);
     border-radius: 20px; padding: 6px 14px;
-    font-size: 0.8rem; color: #ffffff; font-weight: 600;
+    font-size: 0.8rem; color: #ffffff; font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
@@ -562,9 +563,11 @@ with col_h2:
     st.markdown(f"""
     <div style="padding:18px 0; text-align:right; display:flex; gap:8px; justify-content:flex-end; align-items:center;">
         <span class="user-badge">👤 {st.session_state.current_ten}</span>
-        <span style="background:#1a1f2e; border:1px solid {_role_color}; border-radius:20px;
-                     padding:6px 14px; font-size:0.75rem; color:{_role_color};
-                     font-family:'IBM Plex Mono',monospace;">{_role_label}</span>
+        <span style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5);
+                     border-radius:20px; padding:6px 14px; font-size:0.75rem;
+                     color:#ffffff; font-weight:700;
+                     text-shadow:0 1px 2px rgba(0,0,0,0.3);
+                     font-family:'Inter',sans-serif;">{_role_label}</span>
     </div>""", unsafe_allow_html=True)
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
