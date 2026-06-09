@@ -928,192 +928,193 @@ with col_scan:
 # CỘT PHẢI
 # ─────────────────────────────────────────────────
 with col_active:
-    if st.session_state.last_action:
-        act = st.session_state.last_action
-        if act["type"] == "start":
-            st.success(f"🚀 ĐÃ BẮT ĐẦU: **{act['headcode']}** — {act['congdoan']}")
+    _is_sx_right = normalize_role(st.session_state.current_role) == "sanxuat"
+
+    if _is_sx_right:
+        if st.session_state.last_action:
+            act = st.session_state.last_action
+            if act["type"] == "start":
+                st.success(f"🚀 ĐÃ BẮT ĐẦU: **{act['headcode']}** — {act['congdoan']}")
+            else:
+                st.success(f"🏁 ĐÃ HOÀN THÀNH: **{act['headcode']}** — {act['congdoan']}")
+    
+        col_r1, col_r2 = st.columns(2)
+        with col_r1:
+            if st.button("🔄 Làm mới danh sách", use_container_width=True):
+                st.session_state.active_jobs = fetch_active_jobs_from_sheet()
+                st.rerun()
+        with col_r2:
+            if st.button("🗄️ Làm mới dữ liệu DATA", use_container_width=True):
+                # Tăng cache_version → fetch_init_data nhận tham số mới → Streamlit tạo cache entry mới
+                st.session_state.cache_version      = st.session_state.get("cache_version", 0) + 1
+                st.session_state.congdoan_list      = []
+                st.session_state.active_jobs_loaded = False
+                st.session_state.lookup_headcode    = ""
+                st.session_state.lookup_result      = None
+                st.session_state.congdoan_val       = ""
+                st.rerun()
+    
+        init_info = fetch_init_data(st.session_state.get("cache_version", 0))
+        loaded_at = init_info["loaded_at"] if init_info else None
+        if loaded_at:
+            st.markdown(f'<div style="font-size:0.72rem; color:#64748b; text-align:center; margin-bottom:8px;">'
+                        f'🗄️ DATA: <b style="color:#94a3b8">{loaded_at}</b> | Tự làm mới sau 24h</div>',
+                        unsafe_allow_html=True)
+    
+        # Danh sách đang xử lý
+        # Người xem đã có bảng bên trái — chỉ hiện job cards cho SẢN XUẤT
+            st.markdown('<div class="card"><div class="card-title">⚡ Đang xử lý</div>', unsafe_allow_html=True)
+        active_jobs    = st.session_state.active_jobs
+        _login_ten     = st.session_state.current_ten.strip().lower()
+        _is_viewer     = normalize_role(st.session_state.current_role) != "sanxuat"
+        # Lọc: người xem thấy tất cả, người sản xuất chỉ thấy của mình
+        if _is_viewer:
+            filtered_jobs = active_jobs
         else:
-            st.success(f"🏁 ĐÃ HOÀN THÀNH: **{act['headcode']}** — {act['congdoan']}")
-
-    col_r1, col_r2 = st.columns(2)
-    with col_r1:
-        if st.button("🔄 Làm mới danh sách", use_container_width=True):
-            st.session_state.active_jobs = fetch_active_jobs_from_sheet()
-            st.rerun()
-    with col_r2:
-        if st.button("🗄️ Làm mới dữ liệu DATA", use_container_width=True):
-            # Tăng cache_version → fetch_init_data nhận tham số mới → Streamlit tạo cache entry mới
-            st.session_state.cache_version      = st.session_state.get("cache_version", 0) + 1
-            st.session_state.congdoan_list      = []
-            st.session_state.active_jobs_loaded = False
-            st.session_state.lookup_headcode    = ""
-            st.session_state.lookup_result      = None
-            st.session_state.congdoan_val       = ""
-            st.rerun()
-
-    init_info = fetch_init_data(st.session_state.get("cache_version", 0))
-    loaded_at = init_info["loaded_at"] if init_info else None
-    if loaded_at:
-        st.markdown(f'<div style="font-size:0.72rem; color:#64748b; text-align:center; margin-bottom:8px;">'
-                    f'🗄️ DATA: <b style="color:#94a3b8">{loaded_at}</b> | Tự làm mới sau 24h</div>',
-                    unsafe_allow_html=True)
-
-    # Danh sách đang xử lý
-    # Người xem đã có bảng bên trái — chỉ hiện job cards cho SẢN XUẤT
-    _col_is_sx = normalize_role(st.session_state.current_role) == "sanxuat"
-    if _col_is_sx:
-        st.markdown('<div class="card"><div class="card-title">⚡ Đang xử lý</div>', unsafe_allow_html=True)
-    active_jobs    = st.session_state.active_jobs
-    _login_ten     = st.session_state.current_ten.strip().lower()
-    _is_viewer     = normalize_role(st.session_state.current_role) != "sanxuat"
-    # Lọc: người xem thấy tất cả, người sản xuất chỉ thấy của mình
-    if _is_viewer:
-        filtered_jobs = active_jobs
-    else:
-        filtered_jobs = {
-            jk: job for jk, job in active_jobs.items()
-            if job.get("nguoibao", "").strip().lower() == _login_ten
-        }
-    if not filtered_jobs:
-        st.markdown('<p style="color:#64748b; font-size:0.85rem; font-family:IBM Plex Mono,monospace;">— Chưa có công việc nào —</p>', unsafe_allow_html=True)
-    else:
-        for jk, job in list(filtered_jobs.items()):
-            # ── Thông tin job ──
-            st.markdown(f"""
-            <div class="job-row">
-                <div class="job-headcode">{job['headcode']}</div>
-                <div class="job-meta">{job['congdoan']}</div>
-                <div class="job-meta">👤 {job['nguoibao']} | 📦 {job.get('soluong',0)}</div>
-                <div class="job-meta" style="color:#64748b;font-size:0.72rem;">🕐 {job['gio_bat_dau']}</div>
-            </div>""", unsafe_allow_html=True)
-
-            # ── Hàng 1: Giờ HC + Giờ TC + Nút Nhập Giờ ──
-            c_hc, c_tc, c_nhap_gio = st.columns([1, 1, 1])
-            with c_hc:
-                gio_hc = st.text_input("⏱ Giờ HC",
-                    value=st.session_state.get(f"gio_hc_{jk}", ""),
-                    placeholder="0.00",
-                    key=f"inp_hc_{jk}_{st.session_state.form_key}",
-                    label_visibility="visible")
-            with c_tc:
-                gio_tc = st.text_input("🌙 Giờ TC",
-                    value=st.session_state.get(f"gio_tc_{jk}", ""),
-                    placeholder="0.00",
-                    key=f"inp_tc_{jk}_{st.session_state.form_key}",
-                    label_visibility="visible")
-            with c_nhap_gio:
-                st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-                _gio_submitted = st.session_state.get(f"gio_submitted_{jk}", False)
-                if st.button(
-                    "✔ Đã ghi" if _gio_submitted else "📥 Nhập giờ",
-                    key=f"nhap_gio_{jk}",
-                    use_container_width=True,
-                    disabled=_gio_submitted,
-                ):
-                    # ✅ Set flag NGAY ĐẦU TIÊN trước mọi xử lý
-                    # → mọi lần bấm tiếp theo trong cùng render cycle đều bị chặn
-                    st.session_state[f"gio_submitted_{jk}"] = True
-
-                    # Kiểm tra đúng người
-                    job_nguoi   = job["nguoibao"].strip().lower()
-                    login_nguoi = st.session_state.current_ten.strip().lower()
-                    if job_nguoi != login_nguoi:
-                        st.session_state[f"gio_err_{jk}"]        = True
-                        st.session_state[f"gio_submitted_{jk}"]  = False
-                        st.rerun()
-
-                    # Parse giá trị
-                    try:
-                        val_hc = float(str(gio_hc).replace(",",".")) if str(gio_hc).strip() else None
-                    except ValueError:
-                        val_hc = None
-                    try:
-                        val_tc = float(str(gio_tc).replace(",",".")) if str(gio_tc).strip() else None
-                    except ValueError:
-                        val_tc = None
-
-                    if val_hc is None and val_tc is None:
-                        st.session_state[f"gio_submitted_{jk}"] = False
-                        st.warning("⚠️ Vui lòng nhập ít nhất 1 giá trị giờ công.")
-                    else:
-                        row_id = job.get("row_id", "")
-                        payload_gio = {
-                            "action":   "update_gio_cong",
-                            "row_id":   row_id,
-                            "headcode": job["headcode"],
-                            "congdoan": job["congdoan"],
-                            "nguoibao": job["nguoibao"],
-                            "gio_hc":   val_hc,
-                            "gio_tc":   val_tc,
-                        }
-                        with st.spinner("Đang ghi giờ công..."):
-                            ok, resp = call_api(payload_gio)
-                        if ok and resp.get("status") == "ok":
-                            st.session_state[f"gio_hc_{jk}"]        = ""
-                            st.session_state[f"gio_tc_{jk}"]        = ""
-                            st.session_state[f"gio_submitted_{jk}"] = False
-                            st.session_state.form_key += 1
+            filtered_jobs = {
+                jk: job for jk, job in active_jobs.items()
+                if job.get("nguoibao", "").strip().lower() == _login_ten
+            }
+        if not filtered_jobs:
+            st.markdown('<p style="color:#64748b; font-size:0.85rem; font-family:IBM Plex Mono,monospace;">— Chưa có công việc nào —</p>', unsafe_allow_html=True)
+        else:
+            for jk, job in list(filtered_jobs.items()):
+                # ── Thông tin job ──
+                st.markdown(f"""
+                <div class="job-row">
+                    <div class="job-headcode">{job['headcode']}</div>
+                    <div class="job-meta">{job['congdoan']}</div>
+                    <div class="job-meta">👤 {job['nguoibao']} | 📦 {job.get('soluong',0)}</div>
+                    <div class="job-meta" style="color:#64748b;font-size:0.72rem;">🕐 {job['gio_bat_dau']}</div>
+                </div>""", unsafe_allow_html=True)
+    
+                # ── Hàng 1: Giờ HC + Giờ TC + Nút Nhập Giờ ──
+                c_hc, c_tc, c_nhap_gio = st.columns([1, 1, 1])
+                with c_hc:
+                    gio_hc = st.text_input("⏱ Giờ HC",
+                        value=st.session_state.get(f"gio_hc_{jk}", ""),
+                        placeholder="0.00",
+                        key=f"inp_hc_{jk}_{st.session_state.form_key}",
+                        label_visibility="visible")
+                with c_tc:
+                    gio_tc = st.text_input("🌙 Giờ TC",
+                        value=st.session_state.get(f"gio_tc_{jk}", ""),
+                        placeholder="0.00",
+                        key=f"inp_tc_{jk}_{st.session_state.form_key}",
+                        label_visibility="visible")
+                with c_nhap_gio:
+                    st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+                    _gio_submitted = st.session_state.get(f"gio_submitted_{jk}", False)
+                    if st.button(
+                        "✔ Đã ghi" if _gio_submitted else "📥 Nhập giờ",
+                        key=f"nhap_gio_{jk}",
+                        use_container_width=True,
+                        disabled=_gio_submitted,
+                    ):
+                        # ✅ Set flag NGAY ĐẦU TIÊN trước mọi xử lý
+                        # → mọi lần bấm tiếp theo trong cùng render cycle đều bị chặn
+                        st.session_state[f"gio_submitted_{jk}"] = True
+    
+                        # Kiểm tra đúng người
+                        job_nguoi   = job["nguoibao"].strip().lower()
+                        login_nguoi = st.session_state.current_ten.strip().lower()
+                        if job_nguoi != login_nguoi:
+                            st.session_state[f"gio_err_{jk}"]        = True
+                            st.session_state[f"gio_submitted_{jk}"]  = False
                             st.rerun()
-                        elif resp.get("status") == "duplicate":
-                            st.session_state[f"gio_hc_{jk}"]        = ""
-                            st.session_state[f"gio_tc_{jk}"]        = ""
+    
+                        # Parse giá trị
+                        try:
+                            val_hc = float(str(gio_hc).replace(",",".")) if str(gio_hc).strip() else None
+                        except ValueError:
+                            val_hc = None
+                        try:
+                            val_tc = float(str(gio_tc).replace(",",".")) if str(gio_tc).strip() else None
+                        except ValueError:
+                            val_tc = None
+    
+                        if val_hc is None and val_tc is None:
                             st.session_state[f"gio_submitted_{jk}"] = False
-                            st.session_state.form_key += 1
-                            st.rerun()
+                            st.warning("⚠️ Vui lòng nhập ít nhất 1 giá trị giờ công.")
                         else:
-                            st.session_state[f"gio_submitted_{jk}"] = False
-                            st.error(f"Lỗi: {resp.get('message','Không rõ')}")
-
-            # Cảnh báo sai người nhập giờ
-            if st.session_state.get(f"gio_err_{jk}"):
-                st.warning("⚠️ Mã hàng này không phải mã bạn đang làm")
-                st.session_state.pop(f"gio_err_{jk}", None)
-
-            # ── Hàng 2: Nút Xong ──
-            c_xong, _ = st.columns([1, 2])
-            with c_xong:
-                if st.button("✅ Xong", key=f"finish_btn_{jk}", use_container_width=True):
-                    job_nguoi   = job["nguoibao"].strip().lower()
-                    login_nguoi = st.session_state.current_ten.strip().lower()
-                    if job_nguoi != login_nguoi:
-                        st.session_state[f"owner_err_{jk}"] = True
-                    else:
-                        st.session_state.pop(f"owner_err_{jk}", None)
-                        sl = job.get("soluong","")
-                        st.session_state.prefill_headcode = job["headcode"]
-                        st.session_state.prefill_nguoibao = job["nguoibao"]
-                        st.session_state.prefill_congdoan = job["congdoan"]
-                        st.session_state.prefill_soluong  = str(sl) if sl != "" else ""
-                    st.rerun()
-                if st.session_state.get(f"owner_err_{jk}"):
-                    st.warning("⚠️ Không phải mã của bạn")
-
-            st.markdown("<hr style='border-color:#2a3045;margin:4px 0 12px 0'>", unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Hướng dẫn
-    st.markdown("""
-    <div class="card">
-        <div class="card-title">📖 Hướng dẫn</div>
-        <div style="font-size:0.82rem; color:#94a3b8; line-height:1.8;">
-            <b style="color:#f59e0b">Lần quét 1</b> → <span style="color:#4ade80">BẮT ĐẦU</span><br/>
-            <b style="color:#818cf8">Lần quét 2</b> → <span style="color:#818cf8">HOÀN THÀNH</span><br/>
-            <b style="color:#00e5a0">Nút ✅ Xong</b> → Chọn nhanh từ danh sách<br/><br/>
-            <span style="color:#64748b">⚠ Danh sách tự khôi phục khi mở lại app</span>
-        </div>
-    </div>""", unsafe_allow_html=True)
-
+                            row_id = job.get("row_id", "")
+                            payload_gio = {
+                                "action":   "update_gio_cong",
+                                "row_id":   row_id,
+                                "headcode": job["headcode"],
+                                "congdoan": job["congdoan"],
+                                "nguoibao": job["nguoibao"],
+                                "gio_hc":   val_hc,
+                                "gio_tc":   val_tc,
+                            }
+                            with st.spinner("Đang ghi giờ công..."):
+                                ok, resp = call_api(payload_gio)
+                            if ok and resp.get("status") == "ok":
+                                st.session_state[f"gio_hc_{jk}"]        = ""
+                                st.session_state[f"gio_tc_{jk}"]        = ""
+                                st.session_state[f"gio_submitted_{jk}"] = False
+                                st.session_state.form_key += 1
+                                st.rerun()
+                            elif resp.get("status") == "duplicate":
+                                st.session_state[f"gio_hc_{jk}"]        = ""
+                                st.session_state[f"gio_tc_{jk}"]        = ""
+                                st.session_state[f"gio_submitted_{jk}"] = False
+                                st.session_state.form_key += 1
+                                st.rerun()
+                            else:
+                                st.session_state[f"gio_submitted_{jk}"] = False
+                                st.error(f"Lỗi: {resp.get('message','Không rõ')}")
+    
+                # Cảnh báo sai người nhập giờ
+                if st.session_state.get(f"gio_err_{jk}"):
+                    st.warning("⚠️ Mã hàng này không phải mã bạn đang làm")
+                    st.session_state.pop(f"gio_err_{jk}", None)
+    
+                # ── Hàng 2: Nút Xong ──
+                c_xong, _ = st.columns([1, 2])
+                with c_xong:
+                    if st.button("✅ Xong", key=f"finish_btn_{jk}", use_container_width=True):
+                        job_nguoi   = job["nguoibao"].strip().lower()
+                        login_nguoi = st.session_state.current_ten.strip().lower()
+                        if job_nguoi != login_nguoi:
+                            st.session_state[f"owner_err_{jk}"] = True
+                        else:
+                            st.session_state.pop(f"owner_err_{jk}", None)
+                            sl = job.get("soluong","")
+                            st.session_state.prefill_headcode = job["headcode"]
+                            st.session_state.prefill_nguoibao = job["nguoibao"]
+                            st.session_state.prefill_congdoan = job["congdoan"]
+                            st.session_state.prefill_soluong  = str(sl) if sl != "" else ""
+                        st.rerun()
+                    if st.session_state.get(f"owner_err_{jk}"):
+                        st.warning("⚠️ Không phải mã của bạn")
+    
+                st.markdown("<hr style='border-color:#2a3045;margin:4px 0 12px 0'>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+        # Hướng dẫn
+        st.markdown("""
+        <div class="card">
+            <div class="card-title">📖 Hướng dẫn</div>
+            <div style="font-size:0.82rem; color:#94a3b8; line-height:1.8;">
+                <b style="color:#f59e0b">Lần quét 1</b> → <span style="color:#4ade80">BẮT ĐẦU</span><br/>
+                <b style="color:#818cf8">Lần quét 2</b> → <span style="color:#818cf8">HOÀN THÀNH</span><br/>
+                <b style="color:#00e5a0">Nút ✅ Xong</b> → Chọn nhanh từ danh sách<br/><br/>
+                <span style="color:#64748b">⚠ Danh sách tự khôi phục khi mở lại app</span>
+            </div>
+        </div>""", unsafe_allow_html=True)
+    
     # ── Tra cứu QR_Log ──
     st.markdown('<div class="card"><div class="card-title">🔍 Tra cứu lịch sử QR_Log</div>', unsafe_allow_html=True)
-
+    
     def on_search_change():
         st.session_state.search_query   = st.session_state["_search_input"]
         st.session_state.search_results = []
-
+    
     st.text_input("Nhập số đuôi headcode (3+ ký tự)",
         value=st.session_state.search_query, key="_search_input",
         on_change=on_search_change, placeholder="VD: 878 → tìm ...878")
-
+    
     q = st.session_state.search_query.strip()
     if len(q) >= 3 and not st.session_state.search_results:
         with st.spinner("🔍 Đang tìm kiếm..."):
@@ -1125,7 +1126,7 @@ with col_active:
             st.session_state.search_results = ["__empty__"]
         else:
             st.session_state.search_results = rows
-
+    
     results = st.session_state.search_results
     if results and results != ["__empty__"]:
         st.markdown(f'<div style="font-size:0.75rem;color:#00e5a0;margin-bottom:8px;">Tìm thấy <b>{len(results)}</b> kết quả</div>', unsafe_allow_html=True)
