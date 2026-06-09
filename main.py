@@ -561,13 +561,18 @@ with col_h2:
     _role_label = "🏭 SẢN XUẤT" if _norm == "sanxuat" else "👁 NGƯỜI XEM"
     _role_color = "#ffffff"     if _norm == "sanxuat" else "#fbbf24"
     st.markdown(f"""
-    <div style="padding:18px 0; text-align:right; display:flex; gap:8px; justify-content:flex-end; align-items:center;">
-        <span class="user-badge">👤 {st.session_state.current_ten}</span>
-        <span style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5);
-                     border-radius:20px; padding:6px 14px; font-size:0.75rem;
+    <div style="padding:14px 0; text-align:right; display:flex; gap:8px; justify-content:flex-end; align-items:center;">
+        <span style="background:#eff6ff; border:2px solid #1d4ed8; border-radius:20px;
+                     padding:6px 16px; font-size:0.82rem; color:#1d4ed8;
+                     font-weight:700; font-family:'Inter',sans-serif;">
+            👤 {st.session_state.current_ten}
+        </span>
+        <span style="background:#1d4ed8; border-radius:20px;
+                     padding:6px 16px; font-size:0.78rem;
                      color:#ffffff; font-weight:700;
-                     text-shadow:0 1px 2px rgba(0,0,0,0.3);
-                     font-family:'Inter',sans-serif;">{_role_label}</span>
+                     font-family:'Inter',sans-serif;">
+            {_role_label}
+        </span>
     </div>""", unsafe_allow_html=True)
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
