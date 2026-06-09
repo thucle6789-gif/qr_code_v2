@@ -140,36 +140,157 @@ def read_session():
     except Exception:
         return None
 
-# CSS toàn cục (luôn load — cần thiết cho cả trang login lẫn app)
+# CSS toàn cục — Light blue theme
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;700&display=swap');
-html, body, [class*="css"] { font-family: 'IBM Plex Sans', sans-serif; background-color: #0f1117; color: #e0e0e0; }
-.sys-header { background: linear-gradient(135deg, #1a1f2e 0%, #0f1117 100%); border-bottom: 2px solid #00e5a0; padding: 18px 28px; margin: -1rem -1rem 1.5rem -1rem; display: flex; align-items: center; justify-content: space-between; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+/* ── Reset & Base ── */
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+    background-color: #f0f4f8;
+    color: #1e293b;
+}
+
+/* ── Header ── */
+.sys-header {
+    background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+    border-bottom: none;
+    padding: 16px 28px;
+    margin: -1rem -1rem 1.5rem -1rem;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(29,78,216,0.3);
+}
 .sys-header-left { display:flex; align-items:center; gap:14px; }
-.sys-header h1 { font-family: 'IBM Plex Mono', monospace; font-size: 1.3rem; color: #00e5a0; margin: 0; letter-spacing: 2px; text-transform: uppercase; }
-.sys-header .dot { width: 10px; height: 10px; border-radius: 50%; background: #00e5a0; box-shadow: 0 0 10px #00e5a0; animation: pulse 2s infinite; }
-.user-badge { background:#1a1f2e; border:1px solid #2a3045; border-radius:20px; padding:6px 14px; font-size:0.8rem; color:#00e5a0; font-family:'IBM Plex Mono',monospace; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-.card { background: #1a1f2e; border: 1px solid #2a3045; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
-.card-title { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #00e5a0; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; border-bottom: 1px solid #2a3045; padding-bottom: 8px; }
-.badge-doing { background: #1a2e1a; color: #4ade80; border: 1px solid #4ade80; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
-.job-row { background: #1a1f2e; border: 1px solid #2a3045; border-left: 3px solid #f59e0b; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; }
-.job-headcode { font-family: 'IBM Plex Mono', monospace; font-size: 1rem; font-weight: 600; color: #f59e0b; }
-.job-meta { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; }
+.sys-header h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.25rem; font-weight: 700;
+    color: #ffffff; margin: 0; letter-spacing: 0.5px;
+}
+.sys-header-sub { color: rgba(255,255,255,0.75); font-size: 0.78rem; margin-top: 2px; }
+.sys-header .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #4ade80; box-shadow: 0 0 8px #4ade80;
+    animation: pulse 2s infinite;
+}
+.user-badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px; padding: 6px 14px;
+    font-size: 0.8rem; color: #ffffff; font-weight: 600;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Cards ── */
+.card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.card-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem; font-weight: 700;
+    color: #1d4ed8; letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    border-bottom: 2px solid #eff6ff;
+    padding-bottom: 8px;
+}
+
+/* ── Job row ── */
+.job-row {
+    background: #f8faff;
+    border: 1px solid #dbeafe;
+    border-left: 4px solid #f59e0b;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+}
+.job-headcode {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem; font-weight: 600; color: #d97706;
+}
+.job-meta { font-size: 0.78rem; color: #64748b; margin-top: 3px; }
+
+/* ── Badge ── */
+.badge-doing {
+    background: #dcfce7; color: #16a34a;
+    border: 1px solid #86efac;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 600;
+}
+
+/* ── Login ── */
 .login-wrap { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
-.login-box { width: 100%; max-width: 400px; padding: 40px; background: #1a1f2e; border: 1px solid #2a3045; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,229,160,0.08); }
-.login-title { font-family:'IBM Plex Mono',monospace; color:#00e5a0; font-size:1.2rem; text-align:center; margin-bottom:28px; letter-spacing:2px; }
+.login-box {
+    width: 100%; max-width: 420px; padding: 40px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(29,78,216,0.1);
+}
+.login-title { color: #1d4ed8; font-size: 1.2rem; font-weight: 700; text-align: center; margin-bottom: 28px; }
 .login-logo { text-align:center; margin-bottom:24px; }
-.login-logo-text { font-family:'IBM Plex Mono',monospace; font-size:1.6rem; color:#00e5a0; letter-spacing:4px; }
-.login-logo-sub { color:#64748b; font-size:0.85rem; margin-top:6px; }
-.stTextInput input { background: #0f1117 !important; border: 1px solid #2a3045 !important; color: #e0e0e0 !important; border-radius: 6px !important; font-family: 'IBM Plex Mono', monospace !important; }
-.stTextInput input:focus { border-color: #00e5a0 !important; box-shadow: 0 0 0 2px rgba(0,229,160,0.15) !important; }
-.stTextInput input:disabled, .stTextInput input[disabled] { background: #1a1f2e !important; color: #00e5a0 !important; border: 1px solid #00e5a0 !important; -webkit-text-fill-color: #00e5a0 !important; opacity: 1 !important; cursor: default !important; font-weight: 600 !important; }
-.stFormSubmitButton button { background: linear-gradient(135deg, #00e5a0, #00b37e) !important; color: #0f1117 !important; font-family: 'IBM Plex Mono', monospace !important; font-weight: 700 !important; font-size: 0.95rem !important; border: none !important; border-radius: 8px !important; height: 48px !important; }
-.stFormSubmitButton button:hover { opacity: 0.9 !important; transform: translateY(-1px); }
+.login-logo-text { font-size: 1.6rem; font-weight: 800; color: #1d4ed8; letter-spacing: 1px; }
+.login-logo-sub { color: #94a3b8; font-size: 0.85rem; margin-top: 6px; }
+
+/* ── Inputs ── */
+.stTextInput input {
+    background: #f8faff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    color: #1e293b !important;
+    border-radius: 8px !important;
+    font-family: 'Inter', sans-serif !important;
+}
+.stTextInput input:focus {
+    border-color: #1d4ed8 !important;
+    box-shadow: 0 0 0 3px rgba(29,78,216,0.12) !important;
+    background: #ffffff !important;
+}
+.stTextInput input:disabled, .stTextInput input[disabled] {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border: 1.5px solid #bfdbfe !important;
+    -webkit-text-fill-color: #1d4ed8 !important;
+    opacity: 1 !important; font-weight: 600 !important;
+}
+
+/* ── Selectbox ── */
+.stSelectbox > div > div {
+    background: #f8faff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    color: #1e293b !important;
+}
+
+/* ── Buttons ── */
+.stFormSubmitButton button, .stButton > button {
+    background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+    color: #ffffff !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    border: none !important;
+    border-radius: 8px !important;
+    height: 46px !important;
+    box-shadow: 0 2px 8px rgba(29,78,216,0.25) !important;
+    transition: all 0.2s !important;
+}
+.stFormSubmitButton button:hover, .stButton > button:hover {
+    opacity: 0.92 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(29,78,216,0.35) !important;
+}
+
+/* ── Alerts ── */
 .stAlert { border-radius: 8px !important; }
 div[data-testid="stFileUploaderDropzone"] { padding: 10px !important; }
+
+/* ── Dividers ── */
+hr { border-color: #e2e8f0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -437,7 +558,7 @@ with col_h1:
 with col_h2:
     _norm = normalize_role(st.session_state.current_role)
     _role_label = "🏭 SẢN XUẤT" if _norm == "sanxuat" else "👁 NGƯỜI XEM"
-    _role_color = "#00e5a0"     if _norm == "sanxuat" else "#f59e0b"
+    _role_color = "#ffffff"     if _norm == "sanxuat" else "#fbbf24"
     st.markdown(f"""
     <div style="padding:18px 0; text-align:right; display:flex; gap:8px; justify-content:flex-end; align-items:center;">
         <span class="user-badge">👤 {st.session_state.current_ten}</span>
@@ -581,11 +702,11 @@ with col_scan:
 
     if not _is_san_xuat:
         st.markdown("""
-        <div style="background:#2d1a0a; border:1px solid #f59e0b; border-radius:10px;
+        <div style="background:#fffbeb; border:1px solid #fbbf24; border-radius:10px;
                     padding:20px 24px; text-align:center; margin-bottom:16px;">
-            <div style="font-family:'IBM Plex Mono',monospace; color:#f59e0b;
+            <div style="font-family:'IBM Plex Mono',monospace; color:#d97706;
                         font-size:1rem; letter-spacing:2px; margin-bottom:8px;">👁 CHẾ ĐỘ XEM</div>
-            <div style="color:#94a3b8; font-size:0.85rem;">
+            <div style="color:#78716c; font-size:0.85rem;">
                 Tài khoản của bạn chỉ có quyền <b style="color:#f59e0b">tra cứu</b>.<br/>
                 Liên hệ quản trị viên để được cấp quyền sản xuất.
             </div>
@@ -716,7 +837,7 @@ with col_scan:
         # Hiển thị nhãn nhóm nếu có
         if _nhom_user:
             st.markdown(
-                f'<div style="font-size:0.72rem; color:#00e5a0; font-family:IBM Plex Mono,monospace;'
+                f'<div style="font-size:0.72rem; color:#1d4ed8; font-family:Inter,sans-serif; font-weight:600;'
                 f' margin-bottom:4px;">📋 NHÓM: {_nhom_user}</div>',
                 unsafe_allow_html=True
             )
@@ -1168,7 +1289,7 @@ with col_active:
                 gap:4px;padding:8px;background:#1a1f2e;border:1px solid #2a3045;
                 border-left:3px solid {color};border-radius:6px;margin-bottom:4px;
                 font-size:0.72rem;color:#e0e0e0;">
-                <div style="font-family:IBM Plex Mono,monospace;color:#f59e0b;font-weight:600;">{row.get('headcode','')}</div>
+                <div style="font-family:IBM Plex Mono,monospace;color:#d97706;font-weight:600;">{row.get('headcode','')}</div>
                 <div style="color:#94a3b8;font-size:0.65rem;">{row.get('congdoan','')}</div>
                 <div>{sl}</div>
                 <div style="color:#94a3b8;">{row.get('nguoibao','')}</div>
