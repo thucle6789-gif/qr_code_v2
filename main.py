@@ -293,6 +293,11 @@ div[data-testid="stFileUploaderDropzone"] { padding: 10px !important; }
 /* ── Dividers ── */
 hr { border-color: #e2e8f0 !important; }
 
+/* ── Tạo khoảng cách giữa link buttons và nút camera ── */
+div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stButton"]) {
+    margin-top: 12px;
+}
+
 /* ── Nút Đổi MK & Đăng xuất: không nền, nhỏ gọn ── */
 /* Nhắm 2 nút trong _c_actions dùng :has() */
 .action-row ~ div .stButton > button,
@@ -605,21 +610,22 @@ with _c_actions:
     _url_dx = f"?{_qstr}&_action=dang_xuat" if _qstr else "?_action=dang_xuat"
 
     st.markdown(f"""
-    <div style="display:flex; gap:10px; justify-content:flex-end; padding:6px 0 10px 0;">
+    <div style="display:flex; gap:8px; justify-content:flex-end;
+                padding:2px 0 2px 0; margin-top:-8px; margin-bottom:4px;">
         <a href="{_url_mk}" target="_self" style="
             background:transparent; border:1.5px solid #93c5fd;
-            border-radius:14px; padding:4px 14px;
-            font-size:0.75rem; color:#1d4ed8; font-weight:600;
+            border-radius:14px; padding:3px 12px;
+            font-size:0.72rem; color:#1d4ed8; font-weight:600;
             text-decoration:none; white-space:nowrap;
-            font-family:'Inter',sans-serif; line-height:1.6;">
+            font-family:'Inter',sans-serif; line-height:1.8;">
             🔑 Đổi mật khẩu
         </a>
         <a href="{_url_dx}" target="_self" style="
             background:transparent; border:1.5px solid #93c5fd;
-            border-radius:14px; padding:4px 14px;
-            font-size:0.75rem; color:#1d4ed8; font-weight:600;
+            border-radius:14px; padding:3px 12px;
+            font-size:0.72rem; color:#1d4ed8; font-weight:600;
             text-decoration:none; white-space:nowrap;
-            font-family:'Inter',sans-serif; line-height:1.6;">
+            font-family:'Inter',sans-serif; line-height:1.8;">
             🚪 Đăng xuất
         </a>
     </div>""", unsafe_allow_html=True)
@@ -829,6 +835,7 @@ with col_scan:
         # Camera — bật/tắt bằng nút, quét realtime không cần chụp ảnh
 
         # Nút bật/tắt camera
+        st.markdown('<div style="margin-top:16px;"></div>', unsafe_allow_html=True)
         if not st.session_state.get("scanner_open", False):
             if st.button("📷 Mở camera quét QR", use_container_width=True,
                          key=f"open_cam_{st.session_state.form_key}"):
