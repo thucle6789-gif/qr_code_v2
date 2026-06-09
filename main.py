@@ -583,33 +583,46 @@ st.markdown(f"""
 # Nút Đổi MK & Đăng xuất — nằm bên phải, dùng st.markdown + checkbox trick
 _c_space, _c_actions = st.columns([3, 2])
 with _c_actions:
-    # CSS override chỉ áp dụng cho 2 nút ngay sau đây
-    st.markdown("""<style>
-    .btn-action > div > div > div > button {
-        background: transparent !important; border: 1px solid #bfdbfe !important;
-        box-shadow: none !important; color: #1d4ed8 !important;
-        font-size: 0.75rem !important; height: 28px !important;
-        padding: 0 10px !important; font-weight: 600 !important;
-        border-radius: 14px !important; min-height: 0 !important;
-    }
-    .btn-action > div > div > div > button:hover {
-        background: #eff6ff !important; transform: none !important;
-        box-shadow: none !important;
-    }
-    </style>""", unsafe_allow_html=True)
-    st.markdown('<div class="btn-action">', unsafe_allow_html=True)
-    _ca1, _ca2 = st.columns(2)
-    with _ca1:
-        if st.button("🔑 Đổi mật khẩu", use_container_width=True, key="btn_doi_mk"):
-            st.session_state.show_change_pass = not st.session_state.get("show_change_pass", False)
-            st.rerun()
-    with _ca2:
-        if st.button("🚪 Đăng xuất", use_container_width=True, key="btn_dang_xuat"):
-            clear_session()
-            for k in list(st.session_state.keys()):
-                del st.session_state[k]
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Dùng query_params để trigger action từ HTML link — tránh hoàn toàn st.button
+    _action = st.query_params.get("_action", "")
+    if _action == "doi_mk":
+        st.session_state.show_change_pass = not st.session_state.get("show_change_pass", False)
+        # Xóa param action
+        _qp = dict(st.query_params)
+        _qp.pop("_action", None)
+        st.query_params.update(_qp)
+        st.rerun()
+    elif _action == "dang_xuat":
+        clear_session()
+        for k in list(st.session_state.keys()):
+            del st.session_state[k]
+        st.rerun()
+
+    # Lấy URL hiện tại để tạo link
+    _base_url = st.query_params
+    _qstr = "&".join(f"{k}={v}" for k, v in dict(_base_url).items() if k != "_action")
+    _url_mk = f"?{_qstr}&_action=doi_mk" if _qstr else "?_action=doi_mk"
+    _url_dx = f"?{_qstr}&_action=dang_xuat" if _qstr else "?_action=dang_xuat"
+
+    st.markdown(f"""
+    <div style="display:flex; gap:10px; justify-content:flex-end; padding:6px 0 10px 0;">
+        <a href="{_url_mk}" target="_self" style="
+            background:transparent; border:1.5px solid #93c5fd;
+            border-radius:14px; padding:4px 14px;
+            font-size:0.75rem; color:#1d4ed8; font-weight:600;
+            text-decoration:none; white-space:nowrap;
+            font-family:'Inter',sans-serif; line-height:1.6;">
+            🔑 Đổi mật khẩu
+        </a>
+        <a href="{_url_dx}" target="_self" style="
+            background:transparent; border:1.5px solid #93c5fd;
+            border-radius:14px; padding:4px 14px;
+            font-size:0.75rem; color:#1d4ed8; font-weight:600;
+            text-decoration:none; white-space:nowrap;
+            font-family:'Inter',sans-serif; line-height:1.6;">
+            🚪 Đăng xuất
+        </a>
+    </div>""", unsafe_allow_html=True)
 
     # ── Form đổi mật khẩu (hiện/ẩn theo toggle) ──
     if st.session_state.get("show_change_pass"):
