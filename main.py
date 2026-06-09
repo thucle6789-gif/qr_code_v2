@@ -570,60 +570,42 @@ st.markdown(f"""
   </div>
 </div>""", unsafe_allow_html=True)
 
-col_h1, col_h2 = st.columns([3,1])
-with col_h1:
-    pass  # header đã render ở trên
-with col_h2:
-    _norm = normalize_role(st.session_state.current_role)
-    _role_label = "🏭 SẢN XUẤT" if _norm == "sanxuat" else "👁 NGƯỜI XEM"
-    _role_color = "#ffffff"     if _norm == "sanxuat" else "#fbbf24"
-    st.markdown(f"""
-    <div style="padding:14px 0; text-align:right; display:flex; gap:8px; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
-        <span style="background:#eff6ff; border:2px solid #1d4ed8; border-radius:20px;
-                     padding:6px 16px; font-size:0.82rem; color:#1d4ed8;
-                     font-weight:700; font-family:'Inter',sans-serif;">
-            👤 {st.session_state.current_ten}
-        </span>
-        <span style="background:#1d4ed8; border-radius:20px;
-                     padding:6px 16px; font-size:0.78rem;
-                     color:#ffffff; font-weight:700;
-                     font-family:'Inter',sans-serif;">
-            {_role_label}
-        </span>
-    </div>""", unsafe_allow_html=True)
-
-    # Nút Đổi MK & Đăng xuất — dạng link, không có nền
-    st.markdown("""
-    <style>
-    div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
-    .btn-link-style button { background:transparent !important; border:none !important;
-        box-shadow:none !important; color:#1d4ed8 !important;
-        font-size:0.82rem !important; padding:2px 8px !important;
-        height:auto !important; font-weight:600 !important; }
-    .btn-link-style button:hover { text-decoration:underline !important;
-        background:transparent !important; transform:none !important; }
-    </style>""", unsafe_allow_html=True)
-
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button("🔑 Đổi mật khẩu", use_container_width=True, type="secondary"):
-            st.session_state.show_change_pass = not st.session_state.get("show_change_pass", False)
-            st.rerun()
-    with col_btn2:
-        if st.button("🚪 Đăng xuất", use_container_width=True, type="secondary"):
-            clear_session()
-            for k in list(st.session_state.keys()):
-                del st.session_state[k]
-            st.rerun()
+# Nút Đổi mật khẩu & Đăng xuất — nằm ngay dưới header, dạng nhỏ không nền
+st.markdown("""<style>
+div[data-testid="column"]:nth-child(1) .stButton > button,
+div[data-testid="column"]:nth-child(2) .stButton > button {
+    background: transparent !important;
+    border: none !important; box-shadow: none !important;
+    color: #1d4ed8 !important; font-size: 0.82rem !important;
+    height: 36px !important; padding: 0 8px !important;
+    font-weight: 600 !important;
+}
+div[data-testid="column"]:nth-child(1) .stButton > button:hover,
+div[data-testid="column"]:nth-child(2) .stButton > button:hover {
+    background: #eff6ff !important; transform: none !important;
+}
+</style>""", unsafe_allow_html=True)
+# Nút Đổi mật khẩu & Đăng xuất — nằm ngay dưới header
+_col_mk, _col_dx, _col_empty = st.columns([1, 1, 4])
+with _col_mk:
+    if st.button("🔑 Đổi mật khẩu", use_container_width=True):
+        st.session_state.show_change_pass = not st.session_state.get("show_change_pass", False)
+        st.rerun()
+with _col_dx:
+    if st.button("🚪 Đăng xuất", use_container_width=True):
+        clear_session()
+        for k in list(st.session_state.keys()):
+            del st.session_state[k]
+        st.rerun()
 
     # ── Form đổi mật khẩu (hiện/ẩn theo toggle) ──
     if st.session_state.get("show_change_pass"):
         with st.form("form_change_pass", clear_on_submit=True):
             st.markdown("""
-            <div style="background:#1a1f2e; border:1px solid #00e5a0; border-radius:8px;
-                        padding:12px 16px; margin-bottom:8px;">
-                <div style="font-family:'IBM Plex Mono',monospace; color:#00e5a0;
-                            font-size:0.7rem; letter-spacing:2px;">🔑 ĐỔI MẬT KHẨU</div>
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;
+                        padding:10px 14px; margin-bottom:8px;">
+                <div style="font-family:'Inter',sans-serif; color:#1d4ed8;
+                            font-size:0.8rem; font-weight:700;">🔑 ĐỔI MẬT KHẨU</div>
             </div>""", unsafe_allow_html=True)
             old_pass  = st.text_input("Mật khẩu hiện tại", type="password", key="cp_old")
             new_pass  = st.text_input("Mật khẩu mới", type="password", key="cp_new")
