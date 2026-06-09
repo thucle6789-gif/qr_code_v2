@@ -547,21 +547,38 @@ if not st.session_state.logged_in:
 # =====================================================
 # ĐÃ ĐĂNG NHẬP — HEADER
 # =====================================================
+_norm_h   = normalize_role(st.session_state.current_role)
+_rlabel_h = "🏭 SẢN XUẤT" if _norm_h == "sanxuat" else "👁 NGƯỜI XEM"
+st.markdown(f"""
+<div class="sys-header">
+  <div class="sys-header-left">
+    <div class="dot"></div>
+    <div>
+      <h1>🏭 Hệ Thống Quét QR Xưởng Sản Xuất</h1>
+      <div class="sys-header-sub">Quản lý công đoạn sản xuất theo thời gian thực</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+    <span style="background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.6);
+                 border-radius:20px;padding:5px 14px;font-size:0.8rem;color:#fff;font-weight:700;">
+      👤 {st.session_state.current_ten}
+    </span>
+    <span style="background:rgba(255,255,255,0.25);border:1.5px solid rgba(255,255,255,0.6);
+                 border-radius:20px;padding:5px 14px;font-size:0.75rem;color:#fff;font-weight:700;">
+      {_rlabel_h}
+    </span>
+  </div>
+</div>""", unsafe_allow_html=True)
+
 col_h1, col_h2 = st.columns([3,1])
 with col_h1:
-    st.markdown("""
-    <div class="sys-header">
-        <div class="sys-header-left">
-            <div class="dot"></div>
-            <h1>⚙ Hệ Thống Quét QR Xưởng Sản Xuất</h1>
-        </div>
-    </div>""", unsafe_allow_html=True)
+    pass  # header đã render ở trên
 with col_h2:
     _norm = normalize_role(st.session_state.current_role)
     _role_label = "🏭 SẢN XUẤT" if _norm == "sanxuat" else "👁 NGƯỜI XEM"
     _role_color = "#ffffff"     if _norm == "sanxuat" else "#fbbf24"
     st.markdown(f"""
-    <div style="padding:14px 0; text-align:right; display:flex; gap:8px; justify-content:flex-end; align-items:center;">
+    <div style="padding:14px 0; text-align:right; display:flex; gap:8px; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
         <span style="background:#eff6ff; border:2px solid #1d4ed8; border-radius:20px;
                      padding:6px 16px; font-size:0.82rem; color:#1d4ed8;
                      font-weight:700; font-family:'Inter',sans-serif;">
@@ -574,13 +591,26 @@ with col_h2:
             {_role_label}
         </span>
     </div>""", unsafe_allow_html=True)
+
+    # Nút Đổi MK & Đăng xuất — dạng link, không có nền
+    st.markdown("""
+    <style>
+    div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
+    .btn-link-style button { background:transparent !important; border:none !important;
+        box-shadow:none !important; color:#1d4ed8 !important;
+        font-size:0.82rem !important; padding:2px 8px !important;
+        height:auto !important; font-weight:600 !important; }
+    .btn-link-style button:hover { text-decoration:underline !important;
+        background:transparent !important; transform:none !important; }
+    </style>""", unsafe_allow_html=True)
+
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
-        if st.button("🔑 Đổi mật khẩu", use_container_width=True):
+        if st.button("🔑 Đổi mật khẩu", use_container_width=True, type="secondary"):
             st.session_state.show_change_pass = not st.session_state.get("show_change_pass", False)
             st.rerun()
     with col_btn2:
-        if st.button("🚪 Đăng xuất", use_container_width=True):
+        if st.button("🚪 Đăng xuất", use_container_width=True, type="secondary"):
             clear_session()
             for k in list(st.session_state.keys()):
                 del st.session_state[k]
