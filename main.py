@@ -893,11 +893,21 @@ with col_active:
 
     # Danh sách đang xử lý
     st.markdown('<div class="card"><div class="card-title">⚡ Đang xử lý</div>', unsafe_allow_html=True)
-    active_jobs = st.session_state.active_jobs
-    if not active_jobs:
+    active_jobs    = st.session_state.active_jobs
+    _login_ten     = st.session_state.current_ten.strip().lower()
+    _is_viewer     = normalize_role(st.session_state.current_role) != "sanxuat"
+    # Lọc: người xem thấy tất cả, người sản xuất chỉ thấy của mình
+    if _is_viewer:
+        filtered_jobs = active_jobs
+    else:
+        filtered_jobs = {
+            jk: job for jk, job in active_jobs.items()
+            if job.get("nguoibao", "").strip().lower() == _login_ten
+        }
+    if not filtered_jobs:
         st.markdown('<p style="color:#64748b; font-size:0.85rem; font-family:IBM Plex Mono,monospace;">— Chưa có công việc nào —</p>', unsafe_allow_html=True)
     else:
-        for jk, job in list(active_jobs.items()):
+        for jk, job in list(filtered_jobs.items()):
             # ── Thông tin job ──
             st.markdown(f"""
             <div class="job-row">
