@@ -789,7 +789,6 @@ with col_scan:
 
     if _is_san_xuat:
         # Camera — bật/tắt bằng nút, quét realtime không cần chụp ảnh
-        st.markdown('<div class="card">', unsafe_allow_html=True)
 
         # Nút bật/tắt camera
         if not st.session_state.get("scanner_open", False):
@@ -823,7 +822,6 @@ with col_scan:
 
     if _is_san_xuat:
         # Form
-        st.markdown('<div class="card">', unsafe_allow_html=True)
 
         # Thông tin sản phẩm
         if st.session_state.lookup_result and st.session_state.lookup_result.get("status") == "found":
