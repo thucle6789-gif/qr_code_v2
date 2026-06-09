@@ -50,6 +50,12 @@ DANH_SACH_CONG_DOAN_DEFAULT = [
     {"ten": "P020_LẮP RÁP HOÀN THIỆN",                 "nhom": "TỔ ĐÁ"},
     {"ten": "P021_BAO BÌ ĐÓNG GÓI",                    "nhom": "ĐÓNG KIỆN"},
     {"ten": "P022_NHẬP KHO THÀNH PHẨM",                "nhom": "ĐÓNG KIỆN"},
+    # TỔ KÍNH
+    {"ten": "P013_Tạo phôi và Sơ chế",                 "nhom": "TỔ KÍNH"},
+    {"ten": "P017_Làm nguội và Hoàn thiện",             "nhom": "TỔ KÍNH"},
+    {"ten": "P019_Washing - Cleaning",                  "nhom": "TỔ KÍNH"},
+    {"ten": "P20_Lắp ráp hoàn thiện",                  "nhom": "TỔ KÍNH"},
+    {"ten": "P021_Đóng gói hoàn thành",                "nhom": "TỔ KÍNH"},
 ]
 
 # =====================================================
