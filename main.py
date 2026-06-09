@@ -586,51 +586,61 @@ with col_scan:
         </div>""", unsafe_allow_html=True)
 
         # ── Bảng danh sách mã đang làm (chế độ xem) ──
-        _all_jobs = st.session_state.active_jobs
-        if _all_jobs:
-            import pandas as pd
-            import io as _io
+        import pandas as pd
+        import io as _io
+        from datetime import datetime as _dt
 
-            # Tạo DataFrame từ active_jobs
-            rows_df = []
-            for _jk, _job in _all_jobs.items():
-                rows_df.append({
-                    "Headcode":       _job.get("headcode", ""),
-                    "Công đoạn":      _job.get("congdoan", ""),
-                    "Người vận hành": _job.get("nguoibao", ""),
-                    "Số lượng":       _job.get("soluong", ""),
-                    "Giờ bắt đầu":    _job.get("gio_bat_dau", ""),
-                })
+        _all_jobs  = st.session_state.active_jobs
+        # Lấy hc_dict để tra Tên công trình, Tên sản phẩm, ĐVT
+        _init_view = fetch_init_data(st.session_state.get("cache_version", 0))
+        _hc_dict   = _init_view.get("hc_dict", {}) if _init_view else {}
+
+        rows_df = []
+        for _jk, _job in _all_jobs.items():
+            _hc   = _job.get("headcode", "")
+            _info = _hc_dict.get(str(_hc).strip(), {})
+            rows_df.append({
+                "Headcode":          _hc,
+                "Tên công trình":    _info.get("ten_cong_trinh", ""),
+                "Tên sản phẩm":      _info.get("ten_san_pham", ""),
+                "ĐVT":               _info.get("dvt", ""),
+                "Công đoạn hiện tại": _job.get("congdoan", ""),
+                "Số lượng":          _job.get("soluong", ""),
+                "Người báo":         _job.get("nguoibao", ""),
+                "Giờ bắt đầu":       _job.get("gio_bat_dau", ""),
+            })
+
+        if rows_df:
             df_jobs = pd.DataFrame(rows_df)
-
-            # Hiển thị bảng dạng Excel
             st.markdown(f"**📋 Đang xử lý: {len(rows_df)} mã hàng**")
             st.dataframe(
                 df_jobs,
                 use_container_width=True,
                 hide_index=True,
                 column_config={
-                    "Headcode":       st.column_config.TextColumn("Headcode", width="medium"),
-                    "Công đoạn":      st.column_config.TextColumn("Công đoạn", width="large"),
-                    "Người vận hành": st.column_config.TextColumn("Người vận hành", width="medium"),
-                    "Số lượng":       st.column_config.NumberColumn("Số lượng", width="small"),
-                    "Giờ bắt đầu":    st.column_config.TextColumn("Giờ bắt đầu", width="medium"),
+                    "Headcode":           st.column_config.TextColumn("Headcode",          width="small"),
+                    "Tên công trình":     st.column_config.TextColumn("Tên công trình",    width="medium"),
+                    "Tên sản phẩm":       st.column_config.TextColumn("Tên sản phẩm",      width="medium"),
+                    "ĐVT":                st.column_config.TextColumn("ĐVT",               width="small"),
+                    "Công đoạn hiện tại": st.column_config.TextColumn("Công đoạn",         width="medium"),
+                    "Số lượng":           st.column_config.NumberColumn("Số lượng",        width="small"),
+                    "Người báo":          st.column_config.TextColumn("Người báo",         width="medium"),
+                    "Giờ bắt đầu":        st.column_config.TextColumn("Giờ bắt đầu",       width="medium"),
                 },
-                height=min(400, 40 + len(rows_df) * 36),
+                height=min(500, 44 + len(rows_df) * 36),
             )
 
             # Nút tải Excel
             _excel_buf = _io.BytesIO()
             with pd.ExcelWriter(_excel_buf, engine="openpyxl") as _writer:
                 df_jobs.to_excel(_writer, index=False, sheet_name="Đang xử lý")
-                # Tự động điều chỉnh độ rộng cột
                 _ws = _writer.sheets["Đang xử lý"]
                 for _col in _ws.columns:
                     _max_len = max(len(str(_cell.value or "")) for _cell in _col) + 4
-                    _ws.column_dimensions[_col[0].column_letter].width = min(_max_len, 40)
+                    _ws.column_dimensions[_col[0].column_letter].width = min(_max_len, 45)
+                # Freeze header row
+                _ws.freeze_panes = "A2"
             _excel_buf.seek(0)
-
-            from datetime import datetime as _dt
             _fname = f"dang_xu_ly_{_dt.now().strftime('%Y%m%d_%H%M')}.xlsx"
             st.download_button(
                 label="📥 Tải file Excel",
@@ -640,7 +650,7 @@ with col_scan:
                 use_container_width=True,
             )
         else:
-            st.markdown('<p style="color:#64748b; font-size:0.85rem; font-family:IBM Plex Mono,monospace;">— Chưa có mã hàng nào đang xử lý —</p>', unsafe_allow_html=True)
+            st.markdown('<p style="color:#64748b; font-size:0.85rem; font-family:IBM Plex Mono,monospace; margin-top:12px;">— Chưa có mã hàng nào đang xử lý —</p>', unsafe_allow_html=True)
 
     if _is_san_xuat:
         # Camera — bật/tắt bằng nút, quét realtime không cần chụp ảnh
@@ -949,7 +959,10 @@ with col_active:
                     unsafe_allow_html=True)
 
     # Danh sách đang xử lý
-    st.markdown('<div class="card"><div class="card-title">⚡ Đang xử lý</div>', unsafe_allow_html=True)
+    # Người xem đã có bảng bên trái — chỉ hiện job cards cho SẢN XUẤT
+    _col_is_sx = normalize_role(st.session_state.current_role) == "sanxuat"
+    if _col_is_sx:
+        st.markdown('<div class="card"><div class="card-title">⚡ Đang xử lý</div>', unsafe_allow_html=True)
     active_jobs    = st.session_state.active_jobs
     _login_ten     = st.session_state.current_ten.strip().lower()
     _is_viewer     = normalize_role(st.session_state.current_role) != "sanxuat"
