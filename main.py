@@ -732,10 +732,26 @@ with col_scan:
         st.selectbox("Công đoạn hiện tại *", options=_ds_cd,
             index=_cd_idx, key=_cd_key, on_change=on_congdoan_change)
 
-        # ── Công đoạn tiếp theo — dùng toàn bộ danh sách (không lọc nhóm) ──
-        _ds_cd_all = get_congdoan_list("")  # Toàn bộ công đoạn
+        # ── Công đoạn tiếp theo — lọc theo nhóm user ──
+        # Nhóm 1 (CTS/TỔ ĐÁ/ĐÓNG KIỆN): chỉ thấy công đoạn thuộc 3 nhóm này
+        # Nhóm 2 (TỔ KÍNH): chỉ thấy công đoạn thuộc TỔ KÍNH
+        # Không có nhóm: thấy tất cả
+        _NHOM_1 = {"CTS", "TỔ ĐÁ", "ĐÓNG KIỆN"}
+        _NHOM_2 = {"TỔ KÍNH"}
+        _nhom_u = st.session_state.get("current_nhom", "").strip()
+        _full_list = st.session_state.congdoan_list or DANH_SACH_CONG_DOAN_DEFAULT
+
+        if _nhom_u in _NHOM_1:
+            _ds_tiep = [item["ten"] for item in _full_list
+                        if item.get("nhom","").strip() in _NHOM_1]
+        elif _nhom_u in _NHOM_2:
+            _ds_tiep = [item["ten"] for item in _full_list
+                        if item.get("nhom","").strip() in _NHOM_2]
+        else:
+            _ds_tiep = [item["ten"] for item in _full_list]
+
         _cd_tiep_opts = ["-- Chọn công đoạn tiếp theo --"] + [
-            cd for cd in _ds_cd_all if cd != st.session_state.congdoan_val
+            cd for cd in _ds_tiep if cd != st.session_state.congdoan_val
         ]
         _cd_tiep_key = f"_congdoan_tiep_{st.session_state.form_key}"
         def on_cd_tiep_change():
