@@ -319,7 +319,7 @@ DATA_CACHE_TTL = 86400
 def fetch_init_data(cache_version: int = 0):
     _ = cache_version  # Chỉ dùng để bust cache
     try:
-        resp = requests.get(WEB_APP_URL, params={"action":"init"}, timeout=60)
+        resp = requests.get(WEB_APP_URL, params={"action":"init"}, timeout=25)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("status") == "ok":
@@ -340,7 +340,7 @@ def fetch_init_data(cache_version: int = 0):
 
 def fetch_active_jobs_from_sheet():
     try:
-        resp = requests.get(WEB_APP_URL + "?action=get_active", timeout=15)
+        resp = requests.get(WEB_APP_URL + "?action=get_active", timeout=20)
         if resp.status_code == 200:
             jobs = {}
             for item in resp.json().get("active_jobs", []):
@@ -353,7 +353,7 @@ def fetch_active_jobs_from_sheet():
 
 def call_api(payload):
     try:
-        resp = requests.post(WEB_APP_URL, json=payload, timeout=15)
+        resp = requests.post(WEB_APP_URL, json=payload, timeout=20)
         if resp.status_code == 200:
             return True, resp.json()
         return False, {"message": f"HTTP {resp.status_code}"}
@@ -375,7 +375,7 @@ def upload_image_to_sheet(row_id: str, headcode: str, congdoan: str,
             "image_base64": b64,
             "mime_type":    mime_type,
             "file_name":    file_name,
-        }, timeout=60)
+        }, timeout=25)
         if resp.status_code == 200:
             return resp.json()
     except Exception as ex:
@@ -390,7 +390,7 @@ def api_change_password(user: str, old_pass: str, new_pass: str):
             "user":     user,
             "old_pass": old_pass,
             "new_pass": new_pass,
-        }, timeout=10)
+        }, timeout=12)
         if resp.status_code == 200:
             return resp.json()
     except Exception as ex:
@@ -406,7 +406,7 @@ def lookup_in_cache(headcode: str):
 
 def do_login(user: str, password: str):
     try:
-        resp = requests.get(WEB_APP_URL, params={"action":"login","user":user,"pass":password}, timeout=10)
+        resp = requests.get(WEB_APP_URL, params={"action":"login","user":user,"pass":password}, timeout=12)
         if resp.status_code == 200:
             return resp.json()
     except Exception:
@@ -420,7 +420,7 @@ def get_user_nhom(user: str) -> str:
     try:
         resp = requests.get(WEB_APP_URL,
             params={"action": "get_user_nhom", "user": user.strip()},
-            timeout=8)
+            timeout=10)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("status") == "ok":
@@ -431,7 +431,7 @@ def get_user_nhom(user: str) -> str:
 
 def search_qr_log(query: str):
     try:
-        resp = requests.get(WEB_APP_URL, params={"action":"search","query":query.strip()}, timeout=15)
+        resp = requests.get(WEB_APP_URL, params={"action":"search","query":query.strip()}, timeout=20)
         if resp.status_code == 200:
             return resp.json().get("results", [])
     except Exception:
@@ -479,13 +479,24 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 # =====================================================
-# BƯỚC 1: Inject JS để đọc localStorage → URL params (PWA-safe)
-# Phải chạy trước GUARD để params kịp có mặt khi Python đọc
 # =====================================================
-inject_session_from_localstorage()
+# XỬ LÝ ACTION TỪ LINK (doi_mk, dang_xuat) — PHẢI Ở TOP-LEVEL
+_top_action = st.query_params.get("_action", "")
+if _top_action == "doi_mk":
+    st.session_state.show_change_pass = not st.session_state.get("show_change_pass", False)
+    _qp2 = {k: v for k, v in dict(st.query_params).items() if k != "_action"}
+    st.query_params.update(_qp2) if _qp2 else st.query_params.clear()
+    if _qp2:
+        st.query_params.update(_qp2)
+    st.rerun()
+elif _top_action == "dang_xuat":
+    clear_session()
+    for k in list(st.session_state.keys()):
+        del st.session_state[k]
+    st.rerun()
 
 # =====================================================
-# GUARD + QUERY PARAMS RESTORE — đồng bộ, không cần JS timing
+# GUARD + QUERY PARAMS RESTORE
 # =====================================================
 if not st.session_state.get("logged_in"):
     saved = read_session()
@@ -588,21 +599,6 @@ st.markdown(f"""
 # Nút Đổi MK & Đăng xuất — nằm bên phải, dùng st.markdown + checkbox trick
 _c_space, _c_actions = st.columns([3, 2])
 with _c_actions:
-    # Dùng query_params để trigger action từ HTML link — tránh hoàn toàn st.button
-    _action = st.query_params.get("_action", "")
-    if _action == "doi_mk":
-        st.session_state.show_change_pass = not st.session_state.get("show_change_pass", False)
-        # Xóa param action
-        _qp = dict(st.query_params)
-        _qp.pop("_action", None)
-        st.query_params.update(_qp)
-        st.rerun()
-    elif _action == "dang_xuat":
-        clear_session()
-        for k in list(st.session_state.keys()):
-            del st.session_state[k]
-        st.rerun()
-
     # Lấy URL hiện tại để tạo link
     _base_url = st.query_params
     _qstr = "&".join(f"{k}={v}" for k, v in dict(_base_url).items() if k != "_action")
@@ -1004,7 +1000,8 @@ with col_scan:
 
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # ── SUBMIT ──
+        # Dọn dẹp memory định kỳ
+# ── SUBMIT ──
         if submit:
             nguoibao = st.session_state.current_ten.strip()  # Luôn lấy từ tài khoản
             congdoan  = st.session_state.congdoan_val
