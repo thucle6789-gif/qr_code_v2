@@ -28,7 +28,7 @@ def normalize_role(role_str: str) -> str:
     s = s.replace(' ', '')
     return s  # 'sanxuat' hoặc 'nguoixem' hoặc ''
 
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwIX47mHQfQJdH3noDjp3xChyPHh3-5U9dM7DRiseoHwNai-uCuDQBy35Q__dqiUpU/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZHig2VyW7Lk3UxN5JG-CQl19hYnhYeuSCxfZ1cwZy5tPhc-RYMKBWbUeux9sDxtI/exec"
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 # Fallback nếu chưa load được từ server — đồng bộ với sheet CONG_DOAN
@@ -795,12 +795,11 @@ if _tick > 0:
         _new_jobs[_k] = _it
     st.session_state.active_jobs = _new_jobs
 
-    # Khôi phục form sau refresh
-    st.session_state.headcode_val    = _saved_hc
-    st.session_state.lookup_result   = _saved_lookup
-    st.session_state.lookup_headcode = _saved_lookup_hc
-    st.session_state.soluong_val     = _saved_soluong
+    # Khôi phục headcode và số lượng đang nhập
+    st.session_state.headcode_val      = _saved_hc
+    st.session_state.soluong_val       = _saved_soluong
     st.session_state.congdoan_tiep_val = _saved_cd_tiep
+    # Không khôi phục lookup_result — để auto-lookup chạy lại với headcode mới nhất
 
 col_scan, col_active = st.columns([1.1, 0.9], gap="large")
 
@@ -937,10 +936,17 @@ with col_scan:
                 st.session_state.form_key += 1
                 st.rerun()
 
-    # Auto-lookup: nếu headcode_val có giá trị nhưng lookup_result trống → lookup ngay
+    # Auto-lookup: chạy khi headcode có giá trị VÀ (chưa lookup hoặc kết quả là not_found)
     _hv = st.session_state.headcode_val.strip()
-    if _hv and (not st.session_state.lookup_result or
-                st.session_state.lookup_headcode != _hv):
+    _cur_lr = st.session_state.lookup_result
+    _need_lookup = (
+        _hv and (
+            not _cur_lr or                                      # Chưa có kết quả
+            st.session_state.lookup_headcode != _hv or          # Headcode thay đổi
+            _cur_lr.get("status") == "not_found"                # Kết quả cũ là not_found → thử lại
+        )
+    )
+    if _need_lookup:
         _r = lookup_in_cache(_hv)
         st.session_state.lookup_headcode = _hv
         st.session_state.lookup_result   = _r
