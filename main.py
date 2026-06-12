@@ -897,15 +897,19 @@ with col_scan:
                 st.session_state.form_key += 1
                 st.rerun()
 
-    # Auto-lookup: chỉ chạy khi headcode thay đổi hoặc chưa có kết quả
-    # KHÔNG retry not_found để tránh vòng lặp vô hạn
+    # Auto-lookup: chạy khi headcode thay đổi, chưa có kết quả, HOẶC kết quả là not_found
     _hv = st.session_state.headcode_val.strip()
-    _cur_lr   = st.session_state.lookup_result
-    _cur_lhc  = st.session_state.lookup_headcode
-    if _hv and (_cur_lhc != _hv or not _cur_lr):
+    _cur_lr  = st.session_state.lookup_result
+    _cur_lhc = st.session_state.lookup_headcode
+    _is_not_found = _cur_lr and _cur_lr.get("status") == "not_found"
+    if _hv and (_cur_lhc != _hv or not _cur_lr or _is_not_found):
         _r = lookup_in_cache(_hv)
         st.session_state.lookup_headcode = _hv
         st.session_state.lookup_result   = _r
+        # Nếu vẫn not_found → xóa để lần sau thử lại
+        if _r.get("status") == "not_found":
+            st.session_state.lookup_result = None
+            st.session_state.lookup_headcode = ""
 
     if st.session_state.lookup_result and st.session_state.lookup_result.get("status") == "found":
         r = st.session_state.lookup_result
