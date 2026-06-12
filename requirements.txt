@@ -5,3 +5,4 @@ numpy
 Pillow
 streamlit-qrcode-scanner
 openpyxl
+streamlit-autorefresh
