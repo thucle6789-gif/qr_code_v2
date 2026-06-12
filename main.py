@@ -1136,7 +1136,6 @@ with col_active:
                 st.rerun()
         with col_r2:
             if st.button("🗄️ Làm mới dữ liệu DATA", use_container_width=True):
-                # Tăng cache_version → fetch_init_data nhận tham số mới → Streamlit tạo cache entry mới
                 st.session_state.cache_version      = st.session_state.get("cache_version", 0) + 1
                 st.session_state.congdoan_list      = []
                 st.session_state.active_jobs_loaded = False
@@ -1144,6 +1143,18 @@ with col_active:
                 st.session_state.lookup_result      = None
                 st.session_state.congdoan_val       = ""
                 st.rerun()
+
+        # Chọn interval tự làm mới
+        _iv_opts = {"30s": 30, "1 phút": 60, "2 phút": 120, "5 phút": 300}
+        _cur_sec = st.session_state.get("auto_refresh_sec", 30)
+        _cur_lbl = next((k for k, v in _iv_opts.items() if v == _cur_sec), "30s")
+        _sel = st.selectbox("🔁 Tự làm mới mỗi:",
+            options=list(_iv_opts.keys()),
+            index=list(_iv_opts.keys()).index(_cur_lbl),
+            key="refresh_interval_select")
+        if _iv_opts[_sel] != _cur_sec:
+            st.session_state.auto_refresh_sec = _iv_opts[_sel]
+            st.rerun()
     
         init_info = fetch_init_data(st.session_state.get("cache_version", 0))
         loaded_at = init_info["loaded_at"] if init_info else None
