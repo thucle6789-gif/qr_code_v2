@@ -949,6 +949,9 @@ with col_scan:
     _cur_lr   = st.session_state.lookup_result
     _cur_lhc  = st.session_state.lookup_headcode
     if _hv and (_cur_lhc != _hv or not _cur_lr):
+        # Xóa cache cũ nếu headcode thay đổi (tránh dùng kết quả not_found cũ)
+        if _cur_lhc != _hv:
+            lookup_headcode_api.clear()
         _r = lookup_in_cache(_hv)
         st.session_state.lookup_headcode = _hv
         st.session_state.lookup_result   = _r
@@ -957,7 +960,7 @@ with col_scan:
         r = st.session_state.lookup_result
         st.success(f"✅ **{st.session_state.lookup_headcode}** — {r.get('ten_san_pham','')}")
     elif st.session_state.lookup_headcode and st.session_state.lookup_result and st.session_state.lookup_result.get("status") == "not_found":
-        st.error(f"❌ Mã **{st.session_state.lookup_headcode}** không tồn tại!")
+        st.info(f"ℹ️ Mã **{st.session_state.lookup_headcode}** — không tìm thấy thông tin sản phẩm, vẫn có thể tiếp tục.")
     st.markdown('</div>', unsafe_allow_html=True)
 
     if _is_san_xuat:
@@ -1127,10 +1130,13 @@ with col_scan:
                 st.session_state.lookup_result = None; st.session_state.form_key += 1
                 st.rerun()
             elif not st.session_state.lookup_result or st.session_state.lookup_result.get("status") != "found":
-                st.error("❌ Headcode không hợp lệ.")
-                st.session_state.headcode_val = ""; st.session_state.lookup_headcode = ""
-                st.session_state.lookup_result = None; st.session_state.form_key += 1
-                st.rerun()
+                # Headcode không có trong DATA → vẫn cho phép, coi như found với thông tin trống
+                st.session_state.lookup_result = {
+                    "status": "found",
+                    "ten_cong_trinh": "",
+                    "ten_san_pham": "",
+                    "dvt": ""
+                }
             else:
                 congdoan_tiep = st.session_state.congdoan_tiep_val.strip()
                 job_key   = f"{headcode}|{congdoan}|{nguoibao.lower()}"
