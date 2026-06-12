@@ -765,21 +765,40 @@ with col_scan:
         import io as _io
         from datetime import datetime as _dt
 
-        # Đảm bảo active_jobs đã được load
-        if not st.session_state.active_jobs_loaded or not st.session_state.active_jobs:
-            _view_init = fetch_init_data(st.session_state.get("cache_version", 0))
-            if _view_init:
-                _vj = {}
-                for _vi in _view_init.get("active_jobs_raw", []):
-                    _vjk = f"{_vi['headcode']}|{_vi['congdoan']}|{_vi['nguoibao'].strip().lower()}"
-                    _vj[_vjk] = _vi
-                if _vj:
-                    st.session_state.active_jobs = _vj
-                    st.session_state.active_jobs_loaded = True
+        # Nút làm mới + tự động refresh mỗi 30s
+        _vw_col1, _vw_col2 = st.columns([2, 3])
+        with _vw_col1:
+            if st.button("🔄 Làm mới danh sách", key="viewer_refresh",
+                         use_container_width=True):
+                st.session_state.pop("viewer_jobs_cache", None)
+                st.rerun()
+        with _vw_col2:
+            st.markdown(
+                f'<div style="font-size:0.75rem;color:#64748b;padding-top:10px;">'
+                f'Tự làm mới mỗi 30 giây</div>',
+                unsafe_allow_html=True
+            )
 
-        _all_jobs  = st.session_state.active_jobs
+        # Load trực tiếp từ API — không dùng session cache cũ
+        # Dùng st.cache_data ngắn 30s để tránh spam API
+        @st.cache_data(ttl=30, show_spinner=False)
+        def _load_viewer_jobs():
+            try:
+                import requests as _req
+                resp = _req.get(WEB_APP_URL + "?action=get_active", timeout=20)
+                if resp.status_code == 200:
+                    return resp.json().get("active_jobs", [])
+            except Exception:
+                pass
+            return []
 
-        # Lấy hc_dict từ fetch_init_data cache (đã có sẵn)
+        _viewer_raw = _load_viewer_jobs()
+        _all_jobs   = {}
+        for _vi in _viewer_raw:
+            _vjk = f"{_vi['headcode']}|{_vi['congdoan']}|{_vi['nguoibao'].strip().lower()}"
+            _all_jobs[_vjk] = _vi
+
+        # Lấy hc_dict từ fetch_init_data cache
         _init_view = fetch_init_data(st.session_state.get("cache_version", 0))
         _hc_dict   = _init_view.get("hc_dict", {}) if _init_view else {}
 
