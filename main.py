@@ -9,7 +9,6 @@ import base64
 import hashlib
 import json
 from streamlit_qrcode_scanner import qrcode_scanner
-from streamlit_autorefresh import st_autorefresh
 
 # =====================================================
 # CẤU HÌNH
@@ -398,12 +397,18 @@ def api_change_password(user: str, old_pass: str, new_pass: str):
         return {"status": "error", "message": str(ex)}
     return {"status": "error", "message": "Không thể kết nối"}
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def lookup_headcode_api(headcode: str, cache_ver: int = 0) -> dict:
-    """Gọi API lookup 1 headcode — cache 1 giờ, tránh gọi lặp."""
+def lookup_in_cache(headcode: str) -> dict:
+    """Tra headcode trong DATA cache, nếu không có thì gọi API lookup trực tiếp."""
     hc = str(headcode).strip()
     if not hc:
         return {"status": "not_found"}
+    # Thử cache DATA local
+    init = fetch_init_data(st.session_state.get("cache_version", 0))
+    if init:
+        info = init["hc_dict"].get(hc)
+        if info:
+            return {"status": "found", **info}
+    # Gọi trực tiếp API lookup
     try:
         resp = requests.get(WEB_APP_URL,
             params={"action": "lookup_headcode", "headcode": hc},
@@ -420,20 +425,6 @@ def lookup_headcode_api(headcode: str, cache_ver: int = 0) -> dict:
     except Exception:
         pass
     return {"status": "not_found"}
-
-def lookup_in_cache(headcode: str) -> dict:
-    """Tra headcode: cache local trước, sau đó gọi API có cache 1h."""
-    hc = str(headcode).strip()
-    if not hc:
-        return {"status": "not_found"}
-    # 1. Thử cache DATA local
-    init = fetch_init_data(st.session_state.get("cache_version", 0))
-    if init:
-        info = init["hc_dict"].get(hc)
-        if info:
-            return {"status": "found", **info}
-    # 2. Gọi API với cache 1h — không bao giờ spam
-    return lookup_headcode_api(hc, st.session_state.get("cache_version", 0))
 
 def do_login(user: str, password: str):
     try:
@@ -459,17 +450,6 @@ def get_user_nhom(user: str) -> str:
     except Exception:
         pass
     return ""
-
-@st.cache_data(ttl=30, show_spinner=False)
-def load_active_jobs_realtime():
-    """Load danh sách ĐANG LÀM từ server, cache 30 giây."""
-    try:
-        resp = requests.get(WEB_APP_URL + "?action=get_active", timeout=20)
-        if resp.status_code == 200:
-            return resp.json().get("active_jobs", [])
-    except Exception:
-        pass
-    return []
 
 def search_qr_log(query: str):
     try:
@@ -781,33 +761,6 @@ def get_current_job_state():
 # =====================================================
 # LAYOUT
 # =====================================================
-# ── AUTO-REFRESH mỗi 30s — CHỈ cập nhật active_jobs, không reset form ──
-_tick = st_autorefresh(
-    interval=st.session_state.get("auto_refresh_sec", 30) * 1000,
-    key="global_autorefresh"
-)
-if _tick > 0:
-    # Lưu lại các giá trị form đang nhập trước khi refresh
-    _saved_hc      = st.session_state.get("headcode_val", "")
-    _saved_lookup  = st.session_state.get("lookup_result", None)
-    _saved_lookup_hc = st.session_state.get("lookup_headcode", "")
-    _saved_soluong = st.session_state.get("soluong_val", "")
-    _saved_cd_tiep = st.session_state.get("congdoan_tiep_val", "")
-
-    # Cập nhật active_jobs
-    _fresh = load_active_jobs_realtime()
-    _new_jobs = {}
-    for _it in _fresh:
-        _k = f"{_it['headcode']}|{_it['congdoan']}|{_it['nguoibao'].strip().lower()}"
-        _new_jobs[_k] = _it
-    st.session_state.active_jobs = _new_jobs
-
-    # Khôi phục headcode và số lượng đang nhập
-    st.session_state.headcode_val      = _saved_hc
-    st.session_state.soluong_val       = _saved_soluong
-    st.session_state.congdoan_tiep_val = _saved_cd_tiep
-    # Không khôi phục lookup_result — để auto-lookup chạy lại với headcode mới nhất
-
 col_scan, col_active = st.columns([1.1, 0.9], gap="large")
 
 # ─────────────────────────────────────────────────
@@ -849,7 +802,8 @@ with col_scan:
             )
 
         # Load trực tiếp từ API — cache 30s
-        _viewer_raw = load_active_jobs_realtime()
+        _viewer_raw_data = fetch_active_jobs_from_sheet()
+        _viewer_raw = _viewer_raw_data if _viewer_raw_data else []
         _all_jobs   = {}
         for _vi in _viewer_raw:
             _vjk = f"{_vi['headcode']}|{_vi['congdoan']}|{_vi['nguoibao'].strip().lower()}"
@@ -949,9 +903,6 @@ with col_scan:
     _cur_lr   = st.session_state.lookup_result
     _cur_lhc  = st.session_state.lookup_headcode
     if _hv and (_cur_lhc != _hv or not _cur_lr):
-        # Xóa cache cũ nếu headcode thay đổi (tránh dùng kết quả not_found cũ)
-        if _cur_lhc != _hv:
-            lookup_headcode_api.clear()
         _r = lookup_in_cache(_hv)
         st.session_state.lookup_headcode = _hv
         st.session_state.lookup_result   = _r
@@ -1251,17 +1202,7 @@ with col_active:
                 st.session_state.congdoan_val       = ""
                 st.rerun()
 
-        # Chọn interval tự làm mới
-        _iv_opts = {"30s": 30, "1 phút": 60, "2 phút": 120, "5 phút": 300}
-        _cur_sec = st.session_state.get("auto_refresh_sec", 30)
-        _cur_lbl = next((k for k, v in _iv_opts.items() if v == _cur_sec), "30s")
-        _sel = st.selectbox("🔁 Tự làm mới mỗi:",
-            options=list(_iv_opts.keys()),
-            index=list(_iv_opts.keys()).index(_cur_lbl),
-            key="refresh_interval_select")
-        if _iv_opts[_sel] != _cur_sec:
-            st.session_state.auto_refresh_sec = _iv_opts[_sel]
-            st.rerun()
+
     
         init_info = fetch_init_data(st.session_state.get("cache_version", 0))
         loaded_at = init_info["loaded_at"] if init_info else None
