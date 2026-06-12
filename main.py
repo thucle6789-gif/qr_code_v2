@@ -765,8 +765,21 @@ with col_scan:
         import io as _io
         from datetime import datetime as _dt
 
+        # Đảm bảo active_jobs đã được load
+        if not st.session_state.active_jobs_loaded or not st.session_state.active_jobs:
+            _view_init = fetch_init_data(st.session_state.get("cache_version", 0))
+            if _view_init:
+                _vj = {}
+                for _vi in _view_init.get("active_jobs_raw", []):
+                    _vjk = f"{_vi['headcode']}|{_vi['congdoan']}|{_vi['nguoibao'].strip().lower()}"
+                    _vj[_vjk] = _vi
+                if _vj:
+                    st.session_state.active_jobs = _vj
+                    st.session_state.active_jobs_loaded = True
+
         _all_jobs  = st.session_state.active_jobs
-        # Lấy hc_dict để tra Tên công trình, Tên sản phẩm, ĐVT
+
+        # Lấy hc_dict từ fetch_init_data cache (đã có sẵn)
         _init_view = fetch_init_data(st.session_state.get("cache_version", 0))
         _hc_dict   = _init_view.get("hc_dict", {}) if _init_view else {}
 
