@@ -319,7 +319,7 @@ DATA_CACHE_TTL = 86400
 def fetch_init_data(cache_version: int = 0):
     _ = cache_version  # Chỉ dùng để bust cache
     try:
-        resp = requests.get(WEB_APP_URL, params={"action":"init"}, timeout=25)
+        resp = requests.get(WEB_APP_URL, params={"action":"init"}, timeout=12)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("status") == "ok":
@@ -340,7 +340,7 @@ def fetch_init_data(cache_version: int = 0):
 
 def fetch_active_jobs_from_sheet():
     try:
-        resp = requests.get(WEB_APP_URL + "?action=get_active", timeout=20)
+        resp = requests.get(WEB_APP_URL + "?action=get_active", timeout=12)
         if resp.status_code == 200:
             jobs = {}
             for item in resp.json().get("active_jobs", []):
@@ -353,7 +353,7 @@ def fetch_active_jobs_from_sheet():
 
 def call_api(payload):
     try:
-        resp = requests.post(WEB_APP_URL, json=payload, timeout=20)
+        resp = requests.post(WEB_APP_URL, json=payload, timeout=12)
         if resp.status_code == 200:
             return True, resp.json()
         return False, {"message": f"HTTP {resp.status_code}"}
@@ -375,7 +375,7 @@ def upload_image_to_sheet(row_id: str, headcode: str, congdoan: str,
             "image_base64": b64,
             "mime_type":    mime_type,
             "file_name":    file_name,
-        }, timeout=25)
+        }, timeout=12)
         if resp.status_code == 200:
             return resp.json()
     except Exception as ex:
@@ -412,7 +412,7 @@ def lookup_in_cache(headcode: str) -> dict:
     try:
         resp = requests.get(WEB_APP_URL,
             params={"action": "lookup_headcode", "headcode": hc},
-            timeout=15)
+            timeout=12)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("status") == "found":
@@ -453,7 +453,7 @@ def get_user_nhom(user: str) -> str:
 
 def search_qr_log(query: str):
     try:
-        resp = requests.get(WEB_APP_URL, params={"action":"search","query":query.strip()}, timeout=20)
+        resp = requests.get(WEB_APP_URL, params={"action":"search","query":query.strip()}, timeout=12)
         if resp.status_code == 200:
             return resp.json().get("results", [])
     except Exception:
@@ -1128,8 +1128,7 @@ with col_scan:
                         st.session_state.soluong_val = ""; st.session_state.form_key += 1
                         st.rerun()
                     elif resp_data.get("status") == "duplicate":
-                        st.warning("⚠️ Mã đã được ghi nhận. Đang đồng bộ...")
-                        st.session_state.active_jobs = fetch_active_jobs_from_sheet()
+                        st.warning("⚠️ Mã đã được ghi nhận.")
                         st.session_state.form_key += 1; st.rerun()
                     else:
                         st.error(f"Lỗi: {resp_data.get('message','Không rõ')}")
@@ -1194,7 +1193,8 @@ with col_active:
         col_r1, col_r2 = st.columns(2)
         with col_r1:
             if st.button("🔄 Làm mới danh sách", use_container_width=True):
-                st.session_state.active_jobs = fetch_active_jobs_from_sheet()
+                with st.spinner("Đang tải..."):
+                    st.session_state.active_jobs = fetch_active_jobs_from_sheet()
                 st.rerun()
         with col_r2:
             if st.button("🗄️ Làm mới dữ liệu DATA", use_container_width=True):
