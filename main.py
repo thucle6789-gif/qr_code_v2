@@ -399,11 +399,34 @@ def api_change_password(user: str, old_pass: str, new_pass: str):
     return {"status": "error", "message": "Không thể kết nối"}
 
 def lookup_in_cache(headcode: str):
-    init = fetch_init_data(st.session_state.get("cache_version", 0))
-    if init is None:
+    """Tra cứu headcode trong DATA qua Apps Script (lookup trực tiếp theo headcode).
+    Cache 24h — mỗi headcode được tra 1 lần rồi lưu, không load toàn bộ sheet."""
+    hc = str(headcode).strip()
+    if not hc:
         return {"status": "not_found"}
-    info = init["hc_dict"].get(str(headcode).strip())
-    return {"status":"found", **info} if info else {"status":"not_found"}
+    # Thử cache local trước
+    init = fetch_init_data(st.session_state.get("cache_version", 0))
+    if init:
+        info = init["hc_dict"].get(hc)
+        if info:
+            return {"status": "found", **info}
+    # Không có trong cache → tra trực tiếp qua Apps Script endpoint lookup
+    try:
+        resp = requests.get(WEB_APP_URL,
+            params={"action": "lookup_headcode", "headcode": hc},
+            timeout=12)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("status") == "found":
+                return {
+                    "status":         "found",
+                    "ten_cong_trinh": data.get("ten_cong_trinh", ""),
+                    "ten_san_pham":   data.get("ten_san_pham", ""),
+                    "dvt":            data.get("dvt", ""),
+                }
+    except Exception:
+        pass
+    return {"status": "not_found"}
 
 def do_login(user: str, password: str):
     try:
