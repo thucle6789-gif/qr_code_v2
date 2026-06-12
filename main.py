@@ -811,16 +811,18 @@ with col_scan:
         rows_df = []
         for _jk, _job in _all_jobs.items():
             _hc   = _job.get("headcode", "")
+            # Lấy từ job trực tiếp (get_active đã trả về từ QR_Log)
+            # Fallback hc_dict nếu job chưa có
             _info = _hc_dict.get(str(_hc).strip(), {})
             rows_df.append({
-                "Headcode":          _hc,
-                "Tên công trình":    _info.get("ten_cong_trinh", ""),
-                "Tên sản phẩm":      _info.get("ten_san_pham", ""),
-                "ĐVT":               _info.get("dvt", ""),
+                "Headcode":           _hc,
+                "Tên công trình":     _job.get("ten_cong_trinh") or _info.get("ten_cong_trinh", ""),
+                "Tên sản phẩm":       _job.get("ten_san_pham")   or _info.get("ten_san_pham", ""),
+                "ĐVT":                _job.get("dvt")            or _info.get("dvt", ""),
                 "Công đoạn hiện tại": _job.get("congdoan", ""),
-                "Số lượng":          _job.get("soluong", ""),
-                "Người báo":         _job.get("nguoibao", ""),
-                "Giờ bắt đầu":       _job.get("gio_bat_dau", ""),
+                "Số lượng":           _job.get("soluong", ""),
+                "Người báo":          _job.get("nguoibao", ""),
+                "Giờ bắt đầu":        _job.get("gio_bat_dau", ""),
             })
 
         if rows_df:
