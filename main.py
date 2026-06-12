@@ -1024,6 +1024,15 @@ with col_scan:
             key=_hc_key, on_change=on_headcode_change,
             placeholder="Quét QR hoặc nhập tay...")
 
+        # ── Tự động lookup nếu headcode_val có giá trị nhưng lookup_result chưa có ──
+        # (xảy ra sau auto-refresh hoặc restore session)
+        if (st.session_state.headcode_val.strip() and
+                (not st.session_state.lookup_result or
+                 st.session_state.lookup_headcode != st.session_state.headcode_val.strip())):
+            _auto_result = lookup_in_cache(st.session_state.headcode_val.strip())
+            st.session_state.lookup_headcode = st.session_state.headcode_val.strip()
+            st.session_state.lookup_result   = _auto_result
+
         # Fallback lookup nếu chưa lookup
         hc_live = st.session_state.headcode_val.strip()
         if hc_live and hc_live != st.session_state.lookup_headcode:
