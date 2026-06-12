@@ -751,18 +751,33 @@ def get_current_job_state():
 # =====================================================
 # LAYOUT
 # =====================================================
-# ── AUTO-REFRESH toàn trang mỗi 30s — cập nhật active_jobs ──
+# ── AUTO-REFRESH mỗi 30s — CHỈ cập nhật active_jobs, không reset form ──
 _tick = st_autorefresh(
     interval=st.session_state.get("auto_refresh_sec", 30) * 1000,
     key="global_autorefresh"
 )
 if _tick > 0:
+    # Lưu lại các giá trị form đang nhập trước khi refresh
+    _saved_hc      = st.session_state.get("headcode_val", "")
+    _saved_lookup  = st.session_state.get("lookup_result", None)
+    _saved_lookup_hc = st.session_state.get("lookup_headcode", "")
+    _saved_soluong = st.session_state.get("soluong_val", "")
+    _saved_cd_tiep = st.session_state.get("congdoan_tiep_val", "")
+
+    # Cập nhật active_jobs
     _fresh = load_active_jobs_realtime()
     _new_jobs = {}
     for _it in _fresh:
         _k = f"{_it['headcode']}|{_it['congdoan']}|{_it['nguoibao'].strip().lower()}"
         _new_jobs[_k] = _it
     st.session_state.active_jobs = _new_jobs
+
+    # Khôi phục form sau refresh
+    st.session_state.headcode_val    = _saved_hc
+    st.session_state.lookup_result   = _saved_lookup
+    st.session_state.lookup_headcode = _saved_lookup_hc
+    st.session_state.soluong_val     = _saved_soluong
+    st.session_state.congdoan_tiep_val = _saved_cd_tiep
 
 col_scan, col_active = st.columns([1.1, 0.9], gap="large")
 
