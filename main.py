@@ -903,16 +903,13 @@ with col_scan:
         _r = lookup_in_cache(_hv)
         st.session_state.lookup_headcode = _hv
         st.session_state.lookup_result   = _r
-        # Nếu vẫn not_found → xóa để lần sau thử lại
-        if _r.get("status") == "not_found":
-            st.session_state.lookup_result = None
-            st.session_state.lookup_headcode = ""
+        # Giữ not_found trong session — để chặn submit
 
     if st.session_state.lookup_result and st.session_state.lookup_result.get("status") == "found":
         r = st.session_state.lookup_result
         st.success(f"✅ **{st.session_state.lookup_headcode}** — {r.get('ten_san_pham','')}")
     elif st.session_state.lookup_headcode and st.session_state.lookup_result and st.session_state.lookup_result.get("status") == "not_found":
-        st.info(f"ℹ️ Mã **{st.session_state.lookup_headcode}** — không tìm thấy thông tin sản phẩm, vẫn có thể tiếp tục.")
+        st.error(f"❌ Mã **{st.session_state.lookup_headcode}** không tồn tại trong hệ thống.")
     st.markdown('</div>', unsafe_allow_html=True)
 
     if _is_san_xuat:
@@ -1081,14 +1078,12 @@ with col_scan:
                 st.session_state.headcode_val = ""; st.session_state.lookup_headcode = ""
                 st.session_state.lookup_result = None; st.session_state.form_key += 1
                 st.rerun()
-            elif not st.session_state.lookup_result or st.session_state.lookup_result.get("status") != "found":
-                # Headcode không có trong DATA → vẫn cho phép, coi như found với thông tin trống
-                st.session_state.lookup_result = {
-                    "status": "found",
-                    "ten_cong_trinh": "",
-                    "ten_san_pham": "",
-                    "dvt": ""
-                }
+            elif not st.session_state.lookup_result:
+                # Chưa lookup xong → báo lỗi
+                st.error("❌ Vui lòng chờ tra cứu headcode hoàn tất.")
+            elif st.session_state.lookup_result.get("status") == "not_found":
+                # Headcode không tồn tại trong DATA → chặn
+                st.error(f"❌ Mã **{headcode}** không tồn tại trong hệ thống. Vui lòng kiểm tra lại.")
             else:
                 congdoan_tiep = st.session_state.congdoan_tiep_val.strip()
                 job_key   = f"{headcode}|{congdoan}|{nguoibao.lower()}"
