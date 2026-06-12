@@ -28,7 +28,7 @@ def normalize_role(role_str: str) -> str:
     s = s.replace(' ', '')
     return s  # 'sanxuat' hoặc 'nguoixem' hoặc ''
 
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwIX47mHQfQJdH3noDjp3xChyPHh3-5U9dM7DRiseoHwNai-uCuDQBy35Q__dqiUpU/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZHig2VyW7Lk3UxN5JG-CQl19hYnhYeuSCxfZ1cwZy5tPhc-RYMKBWbUeux9sDxtI/exec"
 VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 # Fallback nếu chưa load được từ server — đồng bộ với sheet CONG_DOAN
@@ -398,23 +398,16 @@ def api_change_password(user: str, old_pass: str, new_pass: str):
         return {"status": "error", "message": str(ex)}
     return {"status": "error", "message": "Không thể kết nối"}
 
-def lookup_in_cache(headcode: str):
-    """Tra cứu headcode trong DATA qua Apps Script (lookup trực tiếp theo headcode).
-    Cache 24h — mỗi headcode được tra 1 lần rồi lưu, không load toàn bộ sheet."""
+@st.cache_data(ttl=3600, show_spinner=False)
+def lookup_headcode_api(headcode: str, cache_ver: int = 0) -> dict:
+    """Gọi API lookup 1 headcode — cache 1 giờ, tránh gọi lặp."""
     hc = str(headcode).strip()
     if not hc:
         return {"status": "not_found"}
-    # Thử cache local trước
-    init = fetch_init_data(st.session_state.get("cache_version", 0))
-    if init:
-        info = init["hc_dict"].get(hc)
-        if info:
-            return {"status": "found", **info}
-    # Không có trong cache → tra trực tiếp qua Apps Script endpoint lookup
     try:
         resp = requests.get(WEB_APP_URL,
             params={"action": "lookup_headcode", "headcode": hc},
-            timeout=12)
+            timeout=15)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("status") == "found":
@@ -427,6 +420,20 @@ def lookup_in_cache(headcode: str):
     except Exception:
         pass
     return {"status": "not_found"}
+
+def lookup_in_cache(headcode: str) -> dict:
+    """Tra headcode: cache local trước, sau đó gọi API có cache 1h."""
+    hc = str(headcode).strip()
+    if not hc:
+        return {"status": "not_found"}
+    # 1. Thử cache DATA local
+    init = fetch_init_data(st.session_state.get("cache_version", 0))
+    if init:
+        info = init["hc_dict"].get(hc)
+        if info:
+            return {"status": "found", **info}
+    # 2. Gọi API với cache 1h — không bao giờ spam
+    return lookup_headcode_api(hc, st.session_state.get("cache_version", 0))
 
 def do_login(user: str, password: str):
     try:
@@ -936,17 +943,12 @@ with col_scan:
                 st.session_state.form_key += 1
                 st.rerun()
 
-    # Auto-lookup: chạy khi headcode có giá trị VÀ (chưa lookup hoặc kết quả là not_found)
+    # Auto-lookup: chỉ chạy khi headcode thay đổi hoặc chưa có kết quả
+    # KHÔNG retry not_found để tránh vòng lặp vô hạn
     _hv = st.session_state.headcode_val.strip()
-    _cur_lr = st.session_state.lookup_result
-    _need_lookup = (
-        _hv and (
-            not _cur_lr or                                      # Chưa có kết quả
-            st.session_state.lookup_headcode != _hv or          # Headcode thay đổi
-            _cur_lr.get("status") == "not_found"                # Kết quả cũ là not_found → thử lại
-        )
-    )
-    if _need_lookup:
+    _cur_lr   = st.session_state.lookup_result
+    _cur_lhc  = st.session_state.lookup_headcode
+    if _hv and (_cur_lhc != _hv or not _cur_lr):
         _r = lookup_in_cache(_hv)
         st.session_state.lookup_headcode = _hv
         st.session_state.lookup_result   = _r
