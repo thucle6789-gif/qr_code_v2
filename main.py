@@ -9,6 +9,7 @@ import base64
 import hashlib
 import json
 from streamlit_qrcode_scanner import qrcode_scanner
+from streamlit_autorefresh import st_autorefresh
 
 # =====================================================
 # CẤU HÌNH
