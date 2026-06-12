@@ -429,6 +429,17 @@ def get_user_nhom(user: str) -> str:
         pass
     return ""
 
+@st.cache_data(ttl=30, show_spinner=False)
+def load_active_jobs_realtime():
+    """Load danh sách ĐANG LÀM từ server, cache 30 giây."""
+    try:
+        resp = requests.get(WEB_APP_URL + "?action=get_active", timeout=20)
+        if resp.status_code == 200:
+            return resp.json().get("active_jobs", [])
+    except Exception:
+        pass
+    return []
+
 def search_qr_log(query: str):
     try:
         resp = requests.get(WEB_APP_URL, params={"action":"search","query":query.strip()}, timeout=20)
@@ -739,6 +750,19 @@ def get_current_job_state():
 # =====================================================
 # LAYOUT
 # =====================================================
+# ── AUTO-REFRESH toàn trang mỗi 30s — cập nhật active_jobs ──
+_tick = st_autorefresh(
+    interval=st.session_state.get("auto_refresh_sec", 30) * 1000,
+    key="global_autorefresh"
+)
+if _tick > 0:
+    _fresh = load_active_jobs_realtime()
+    _new_jobs = {}
+    for _it in _fresh:
+        _k = f"{_it['headcode']}|{_it['congdoan']}|{_it['nguoibao'].strip().lower()}"
+        _new_jobs[_k] = _it
+    st.session_state.active_jobs = _new_jobs
+
 col_scan, col_active = st.columns([1.1, 0.9], gap="large")
 
 # ─────────────────────────────────────────────────
@@ -779,20 +803,8 @@ with col_scan:
                 unsafe_allow_html=True
             )
 
-        # Load trực tiếp từ API — không dùng session cache cũ
-        # Dùng st.cache_data ngắn 30s để tránh spam API
-        @st.cache_data(ttl=30, show_spinner=False)
-        def _load_viewer_jobs():
-            try:
-                import requests as _req
-                resp = _req.get(WEB_APP_URL + "?action=get_active", timeout=20)
-                if resp.status_code == 200:
-                    return resp.json().get("active_jobs", [])
-            except Exception:
-                pass
-            return []
-
-        _viewer_raw = _load_viewer_jobs()
+        # Load trực tiếp từ API — cache 30s
+        _viewer_raw = load_active_jobs_realtime()
         _all_jobs   = {}
         for _vi in _viewer_raw:
             _vjk = f"{_vi['headcode']}|{_vi['congdoan']}|{_vi['nguoibao'].strip().lower()}"
