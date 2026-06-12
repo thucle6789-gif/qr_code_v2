@@ -399,9 +399,9 @@ def api_change_password(user: str, old_pass: str, new_pass: str):
     return {"status": "error", "message": "Không thể kết nối"}
 
 def lookup_in_cache(headcode: str):
-    init = fetch_init_data()
+    init = fetch_init_data(st.session_state.get("cache_version", 0))
     if init is None:
-        return None
+        return {"status": "not_found"}
     info = init["hc_dict"].get(str(headcode).strip())
     return {"status":"found", **info} if info else {"status":"not_found"}
 
@@ -914,6 +914,14 @@ with col_scan:
                 st.session_state.form_key += 1
                 st.rerun()
 
+    # Auto-lookup: nếu headcode_val có giá trị nhưng lookup_result trống → lookup ngay
+    _hv = st.session_state.headcode_val.strip()
+    if _hv and (not st.session_state.lookup_result or
+                st.session_state.lookup_headcode != _hv):
+        _r = lookup_in_cache(_hv)
+        st.session_state.lookup_headcode = _hv
+        st.session_state.lookup_result   = _r
+
     if st.session_state.lookup_result and st.session_state.lookup_result.get("status") == "found":
         r = st.session_state.lookup_result
         st.success(f"✅ **{st.session_state.lookup_headcode}** — {r.get('ten_san_pham','')}")
@@ -1024,14 +1032,7 @@ with col_scan:
             key=_hc_key, on_change=on_headcode_change,
             placeholder="Quét QR hoặc nhập tay...")
 
-        # ── Tự động lookup nếu headcode_val có giá trị nhưng lookup_result chưa có ──
-        # (xảy ra sau auto-refresh hoặc restore session)
-        if (st.session_state.headcode_val.strip() and
-                (not st.session_state.lookup_result or
-                 st.session_state.lookup_headcode != st.session_state.headcode_val.strip())):
-            _auto_result = lookup_in_cache(st.session_state.headcode_val.strip())
-            st.session_state.lookup_headcode = st.session_state.headcode_val.strip()
-            st.session_state.lookup_result   = _auto_result
+
 
         # Fallback lookup nếu chưa lookup
         hc_live = st.session_state.headcode_val.strip()
