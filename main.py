@@ -801,13 +801,8 @@ with col_scan:
                 unsafe_allow_html=True
             )
 
-        # Load trực tiếp từ API — cache 30s
-        _viewer_raw_data = fetch_active_jobs_from_sheet()
-        _viewer_raw = _viewer_raw_data if _viewer_raw_data else []
-        _all_jobs   = {}
-        for _vi in _viewer_raw:
-            _vjk = f"{_vi['headcode']}|{_vi['congdoan']}|{_vi['nguoibao'].strip().lower()}"
-            _all_jobs[_vjk] = _vi
+        # Load trực tiếp từ API — fetch_active_jobs_from_sheet trả về dict
+        _all_jobs = fetch_active_jobs_from_sheet() or {}
 
         # Lấy hc_dict từ fetch_init_data cache
         _init_view = fetch_init_data(st.session_state.get("cache_version", 0))
