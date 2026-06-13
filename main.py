@@ -63,6 +63,13 @@ DANH_SACH_CONG_DOAN_DEFAULT = [
 # =====================================================
 st.set_page_config(page_title="Hệ Thống Quét QR Xưởng", layout="wide", initial_sidebar_state="collapsed")
 
+# ── Ẩn Streamlit menu mặc định và footer ──
+st.markdown("""<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+</style>""", unsafe_allow_html=True)
+
 # =====================================================
 # QUẢN LÝ SESSION QUA localStorage (PWA-safe)
 # Dùng st.query_params làm cầu nối:
@@ -501,6 +508,12 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 # =====================================================
+# =====================================================
+# PING — UptimeRobot health check (load trang nhanh, không render UI)
+if st.query_params.get("ping") == "1":
+    st.markdown("OK")
+    st.stop()
+
 # =====================================================
 # XỬ LÝ ACTION TỪ LINK (doi_mk, dang_xuat) — PHẢI Ở TOP-LEVEL
 _top_action = st.query_params.get("_action", "")
