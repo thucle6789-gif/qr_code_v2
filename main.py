@@ -1,8 +1,6 @@
 import streamlit as st
 import requests
-import cv2
-import numpy as np
-from datetime import datetime, date
+from datetime import datetime
 from zoneinfo import ZoneInfo
 import time
 import base64
@@ -907,16 +905,15 @@ with col_scan:
                 st.session_state.form_key += 1
                 st.rerun()
 
-    # Auto-lookup: chạy khi headcode thay đổi, chưa có kết quả, HOẶC kết quả là not_found
+    # Auto-lookup: chỉ chạy khi headcode thay đổi hoặc chưa có kết quả
+    # KHÔNG retry not_found mỗi render — tránh spam Apps Script (gây chậm/treo)
     _hv = st.session_state.headcode_val.strip()
     _cur_lr  = st.session_state.lookup_result
     _cur_lhc = st.session_state.lookup_headcode
-    _is_not_found = _cur_lr and _cur_lr.get("status") == "not_found"
-    if _hv and (_cur_lhc != _hv or not _cur_lr or _is_not_found):
+    if _hv and (_cur_lhc != _hv or not _cur_lr):
         _r = lookup_in_cache(_hv)
         st.session_state.lookup_headcode = _hv
         st.session_state.lookup_result   = _r
-        # Giữ not_found trong session — để chặn submit
 
     if st.session_state.lookup_result and st.session_state.lookup_result.get("status") == "found":
         r = st.session_state.lookup_result
@@ -1109,15 +1106,22 @@ with col_scan:
                     st.error("❌ Vui lòng chụp hoặc chọn Hình ảnh trước khi hoàn thành.")
                 elif not is_active:
                     _lr = st.session_state.lookup_result or {}
+                    _now_sub = datetime.now(VN_TZ)
+                    _bd_key  = f"gio_bd_{st.session_state.form_key}"
+                    _bd_time = st.session_state.get(_bd_key, _now_sub.time())
+                    _gio_bd_str = _now_sub.replace(
+                        hour=_bd_time.hour, minute=_bd_time.minute,
+                        second=0, microsecond=0).strftime("%d/%m/%Y %H:%M:%S")
                     payload = {
-                        "action":          "start",
-                        "headcode":        headcode,
-                        "ten_cong_trinh":  _lr.get("ten_cong_trinh", ""),
-                        "ten_san_pham":    _lr.get("ten_san_pham", ""),
-                        "dvt":             _lr.get("dvt", ""),
-                        "congdoan":        congdoan,
-                        "soluong":         soluong,
-                        "nguoibao":        nguoibao,
+                        "action":           "start",
+                        "headcode":         headcode,
+                        "ten_cong_trinh":   _lr.get("ten_cong_trinh", ""),
+                        "ten_san_pham":     _lr.get("ten_san_pham", ""),
+                        "dvt":              _lr.get("dvt", ""),
+                        "congdoan":         congdoan,
+                        "soluong":          soluong,
+                        "nguoibao":         nguoibao,
+                        "gio_bat_dau_str":  _gio_bd_str,
                     }
                     with st.spinner("Đang ghi nhận bắt đầu..."):
                         ok, resp_data = call_api(payload)
@@ -1139,11 +1143,17 @@ with col_scan:
                         st.error(f"Lỗi: {resp_data.get('message','Không rõ')}")
                 elif is_active:
                     job_info = st.session_state.active_jobs[job_key]
+                    _now_fin = datetime.now(VN_TZ)
+                    _ht_key  = f"gio_ht_{st.session_state.form_key}"
+                    _ht_time = st.session_state.get(_ht_key, _now_fin.time())
+                    _gio_ht_str = _now_fin.replace(
+                        hour=_ht_time.hour, minute=_ht_time.minute,
+                        second=0, microsecond=0).strftime("%d/%m/%Y %H:%M:%S")
                     payload  = {"action":"finish","headcode":headcode,"congdoan":congdoan,
                                 "congdoan_tiep": congdoan_tiep,
                                 "soluong":soluong,"nguoibao":nguoibao,
                                 "gio_bat_dau":job_info["gio_bat_dau"],
-                                "gio_hoan_thanh":datetime.now(VN_TZ).strftime("%d/%m/%Y %H:%M:%S"),
+                                "gio_hoan_thanh": _gio_ht_str,
                                 "row_id":job_info.get("row_id","")}
                     with st.spinner("Đang cập nhật hoàn thành..."):
                         ok, resp_data = call_api(payload)
@@ -1219,10 +1229,9 @@ with col_active:
             st.markdown(f'<div style="font-size:0.72rem; color:#64748b; text-align:center; margin-bottom:8px;">'
                         f'🗄️ DATA: <b style="color:#94a3b8">{loaded_at}</b> | Tự làm mới sau 24h</div>',
                         unsafe_allow_html=True)
-    
+
         # Danh sách đang xử lý
-        # Người xem đã có bảng bên trái — chỉ hiện job cards cho SẢN XUẤT
-            st.markdown('<div class="card"><div class="card-title">⚡ Đang xử lý</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card"><div class="card-title">⚡ Đang xử lý</div>', unsafe_allow_html=True)
         active_jobs    = st.session_state.active_jobs
         _login_ten     = st.session_state.current_ten.strip().lower()
         _is_viewer     = normalize_role(st.session_state.current_role) != "sanxuat"
@@ -1247,82 +1256,8 @@ with col_active:
                     <div class="job-meta" style="color:#64748b;font-size:0.72rem;">🕐 {job['gio_bat_dau']}</div>
                 </div>""", unsafe_allow_html=True)
     
-                # ── Hàng 1: Giờ HC + Giờ TC + Nút Nhập Giờ ──
-                c_hc, c_tc, c_nhap_gio = st.columns([1, 1, 1])
-                with c_hc:
-                    gio_hc = st.text_input("⏱ Giờ HC",
-                        value=st.session_state.get(f"gio_hc_{jk}", ""),
-                        placeholder="0.00",
-                        key=f"inp_hc_{jk}_{st.session_state.form_key}",
-                        label_visibility="visible")
-                with c_tc:
-                    gio_tc = st.text_input("🌙 Giờ TC",
-                        value=st.session_state.get(f"gio_tc_{jk}", ""),
-                        placeholder="0.00",
-                        key=f"inp_tc_{jk}_{st.session_state.form_key}",
-                        label_visibility="visible")
-                with c_nhap_gio:
-                    st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-                    _gio_submitted = st.session_state.get(f"gio_submitted_{jk}", False)
-                    if st.button(
-                        "✔ Đã ghi" if _gio_submitted else "📥 Nhập giờ",
-                        key=f"nhap_gio_{jk}",
-                        use_container_width=True,
-                        disabled=_gio_submitted,
-                    ):
-                        # ✅ Set flag NGAY ĐẦU TIÊN trước mọi xử lý
-                        # → mọi lần bấm tiếp theo trong cùng render cycle đều bị chặn
-                        st.session_state[f"gio_submitted_{jk}"] = True
-    
-                        # Kiểm tra đúng người
-                        job_nguoi   = job["nguoibao"].strip().lower()
-                        login_nguoi = st.session_state.current_ten.strip().lower()
-                        if job_nguoi != login_nguoi:
-                            st.session_state[f"gio_err_{jk}"]        = True
-                            st.session_state[f"gio_submitted_{jk}"]  = False
-                            st.rerun()
-    
-                        # Parse giá trị
-                        try:
-                            val_hc = float(str(gio_hc).replace(",",".")) if str(gio_hc).strip() else None
-                        except ValueError:
-                            val_hc = None
-                        try:
-                            val_tc = float(str(gio_tc).replace(",",".")) if str(gio_tc).strip() else None
-                        except ValueError:
-                            val_tc = None
-    
-                        if val_hc is None and val_tc is None:
-                            st.session_state[f"gio_submitted_{jk}"] = False
-                            st.warning("⚠️ Vui lòng nhập ít nhất 1 giá trị giờ công.")
-                        else:
-                            row_id = job.get("row_id", "")
-                            payload_gio = {
-                                "action":   "update_gio_cong",
-                                "row_id":   row_id,
-                                "headcode": job["headcode"],
-                                "congdoan": job["congdoan"],
-                                "nguoibao": job["nguoibao"],
-                                "gio_hc":   val_hc,
-                                "gio_tc":   val_tc,
-                            }
-                            with st.spinner("Đang ghi giờ công..."):
-                                ok, resp = call_api(payload_gio)
-                            if ok and resp.get("status") == "ok":
-                                st.session_state[f"gio_hc_{jk}"]        = ""
-                                st.session_state[f"gio_tc_{jk}"]        = ""
-                                st.session_state[f"gio_submitted_{jk}"] = False
-                                st.session_state.form_key += 1
-                                st.rerun()
-                            elif resp.get("status") == "duplicate":
-                                st.session_state[f"gio_hc_{jk}"]        = ""
-                                st.session_state[f"gio_tc_{jk}"]        = ""
-                                st.session_state[f"gio_submitted_{jk}"] = False
-                                st.session_state.form_key += 1
-                                st.rerun()
-                            else:
-                                st.session_state[f"gio_submitted_{jk}"] = False
-                                st.error(f"Lỗi: {resp.get('message','Không rõ')}")
+                # ── Giờ công tự động tính từ thời gian bắt đầu → hoàn thành ──
+                # Không nhập tay nữa — ghi tự động khi bấm Xong
     
                 # Cảnh báo sai người nhập giờ
                 if st.session_state.get(f"gio_err_{jk}"):
