@@ -349,6 +349,9 @@ def fetch_active_jobs_from_sheet():
         if resp.status_code == 200:
             jobs = {}
             for item in resp.json().get("active_jobs", []):
+                # Đảm bảo so_nguoi và nhom luôn có giá trị
+                item.setdefault("so_nguoi", 1)
+                item.setdefault("nhom", "")
                 jk = f"{item['headcode']}|{item['congdoan']}|{item['nguoibao'].strip().lower()}"
                 jobs[jk] = item
             return jobs
