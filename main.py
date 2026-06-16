@@ -1050,10 +1050,10 @@ with col_scan:
             except ValueError:
                 soluong = None
 
-            # Ô nhập số người — chỉ hiện với nhóm KHÔNG PHẢI CTS
-            _nhom_cur = st.session_state.get("current_nhom", "").strip().upper()
+            # Ô nhập số người — dựa theo nhóm USER
+            _nhom_congdoan = st.session_state.get("current_nhom", "").strip().upper()
             so_nguoi = 1
-            if _nhom_cur != "CTS":
+            if _nhom_congdoan != "CTS":
                 _default_sn = int(st.session_state.pop("prefill_so_nguoi_val", 1) or 1)
                 so_nguoi = st.number_input(
                     "👥 Số người thực hiện",
@@ -1139,7 +1139,7 @@ with col_scan:
                         "soluong":          soluong,
                         "nguoibao":         nguoibao,
                         "gio_bat_dau_str":  _gio_bd_str,
-                        "nhom":             st.session_state.get("current_nhom", ""),
+                        "nhom":             st.session_state.get("current_nhom",""),
                         "so_nguoi":         so_nguoi,
                     }
                     with st.spinner("Đang ghi nhận bắt đầu..."):
@@ -1192,9 +1192,10 @@ with col_scan:
                         # Hiển thị giờ công đã tính
                         _ghc  = resp_data.get("gio_hc", 0)
                         _gtc  = resp_data.get("gio_tc", 0)
-                        _soma = resp_data.get("so_ma", 1)
+                        _nhom_dbg = resp_data.get("nhom_debug", "?")
+                        _sn_dbg   = resp_data.get("so_nguoi_debug", 1)
                         if _ghc or _gtc:
-                            st.info(f"⏱ Giờ HC: **{_ghc}h** | 🌙 Giờ TC: **{_gtc}h** *(chia {_soma} mã)*")
+                            st.info(f"⏱ HC: **{_ghc}h** | TC: **{_gtc}h** | Nhóm: {_nhom_dbg} | Số người: {_sn_dbg}")
 
                         # Upload ảnh nếu người dùng đã chọn
                         if uploaded_img is not None:
