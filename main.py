@@ -1140,7 +1140,11 @@ with col_scan:
                         st.warning("⚠️ Mã đã được ghi nhận.")
                         st.session_state.form_key += 1; st.rerun()
                     else:
-                        st.error(f"Lỗi: {resp_data.get('message','Không rõ')}")
+                        _msg = resp_data.get('message','Không rõ')
+                        if "đang bận" in _msg.lower() or "busy" in _msg.lower():
+                            st.error(f"⏳ {_msg} — Nhiều người đang thao tác cùng lúc, vui lòng bấm lại sau vài giây.")
+                        else:
+                            st.error(f"Lỗi: {_msg}")
                 elif is_active:
                     job_info = st.session_state.active_jobs[job_key]
                     _now_fin = datetime.now(VN_TZ)
@@ -1159,6 +1163,13 @@ with col_scan:
                         ok, resp_data = call_api(payload)
                     if ok and resp_data.get("status") == "ok":
                         del st.session_state.active_jobs[job_key]
+                        # Hiển thị giờ công đã tính
+                        _ghc = resp_data.get("gio_hc", 0)
+                        _gtc = resp_data.get("gio_tc", 0)
+                        if _ghc or _gtc:
+                            st.info(f"⏱ Giờ HC: **{_ghc}h** | 🌙 Giờ TC: **{_gtc}h**")
+                        else:
+                            st.warning("⚠️ Không tính được giờ công — kiểm tra lại thời gian bắt đầu/kết thúc.")
 
                         # Upload ảnh nếu người dùng đã chọn
                         if uploaded_img is not None:
@@ -1187,7 +1198,11 @@ with col_scan:
                         st.session_state.form_key += 1
                         st.rerun()
                     else:
-                        st.error(f"Lỗi: {resp_data.get('message','Không rõ')}")
+                        _msg = resp_data.get('message','Không rõ')
+                        if "đang bận" in _msg.lower() or "busy" in _msg.lower():
+                            st.error(f"⏳ {_msg} — Nhiều người đang thao tác cùng lúc, vui lòng bấm lại sau vài giây.")
+                        else:
+                            st.error(f"Lỗi: {_msg}")
 
     # end if _is_san_xuat
 
