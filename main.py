@@ -1164,15 +1164,11 @@ with col_scan:
                     if ok and resp_data.get("status") == "ok":
                         del st.session_state.active_jobs[job_key]
                         # Hiển thị giờ công đã tính
-                        _ghc = resp_data.get("gio_hc", 0)
-                        _gtc = resp_data.get("gio_tc", 0)
-                        _dbg = resp_data.get("debug")
+                        _ghc  = resp_data.get("gio_hc", 0)
+                        _gtc  = resp_data.get("gio_tc", 0)
+                        _soma = resp_data.get("so_ma", 1)
                         if _ghc or _gtc:
-                            st.info(f"⏱ Giờ HC: **{_ghc}h** | 🌙 Giờ TC: **{_gtc}h**")
-                        else:
-                            st.warning("⚠️ Không tính được giờ công — kiểm tra lại thời gian bắt đầu/kết thúc.")
-                        if _dbg:
-                            st.caption(f"🔍 Debug: {_dbg.get('intervals_count',0)} intervals | Sáng={_dbg.get('phut_sang',0):.1f}p | Chiều={_dbg.get('phut_chieu',0):.1f}p | HC={_dbg.get('gio_hc',0)}h | Detail: {_dbg.get('intervals_summary',[][:3])}")
+                            st.info(f"⏱ Giờ HC: **{_ghc}h** | 🌙 Giờ TC: **{_gtc}h** *(chia {_soma} mã)*")
 
                         # Upload ảnh nếu người dùng đã chọn
                         if uploaded_img is not None:
