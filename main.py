@@ -497,6 +497,7 @@ defaults = {
     "prefill_nguoibao":   "",
     "prefill_congdoan":   "",
     "prefill_soluong":    "",
+    "prefill_so_nguoi":   1,
     "search_query":       "",
     "search_results":     [],
     "current_role":       "",   # "sản xuất" | "người xem"
@@ -729,14 +730,16 @@ if not st.session_state.congdoan_val:
 # PREFILL TỪ DANH SÁCH
 # =====================================================
 if st.session_state.prefill_headcode:
-    st.session_state.qr_detected     = st.session_state.prefill_headcode
-    st.session_state.headcode_val    = st.session_state.prefill_headcode
-    st.session_state.congdoan_val    = st.session_state.prefill_congdoan
-    st.session_state.soluong_val     = st.session_state.prefill_soluong
-    st.session_state.prefill_headcode = ""
-    st.session_state.prefill_nguoibao = ""
-    st.session_state.prefill_congdoan = ""
-    st.session_state.prefill_soluong  = ""
+    st.session_state.qr_detected      = st.session_state.prefill_headcode
+    st.session_state.headcode_val     = st.session_state.prefill_headcode
+    st.session_state.congdoan_val     = st.session_state.prefill_congdoan
+    st.session_state.soluong_val      = st.session_state.prefill_soluong
+    st.session_state.prefill_so_nguoi_val = st.session_state.get("prefill_so_nguoi", 1)
+    st.session_state.prefill_headcode  = ""
+    st.session_state.prefill_nguoibao  = ""
+    st.session_state.prefill_congdoan  = ""
+    st.session_state.prefill_soluong   = ""
+    st.session_state.prefill_so_nguoi  = 1
     st.session_state.form_key += 1
     st.rerun()
 
@@ -1048,9 +1051,10 @@ with col_scan:
             _nhom_cur = st.session_state.get("current_nhom", "").strip().upper()
             so_nguoi = 1
             if _nhom_cur != "CTS":
+                _default_sn = int(st.session_state.pop("prefill_so_nguoi_val", 1) or 1)
                 so_nguoi = st.number_input(
                     "👥 Số người thực hiện",
-                    min_value=1, max_value=50, value=1, step=1,
+                    min_value=1, max_value=50, value=_default_sn, step=1,
                     key=f"so_nguoi_{st.session_state.form_key}",
                     help="Nhập số người cùng thực hiện mã này để chia đều giờ công")
 
@@ -1310,10 +1314,11 @@ with col_active:
                         else:
                             st.session_state.pop(f"owner_err_{jk}", None)
                             sl = job.get("soluong","")
-                            st.session_state.prefill_headcode = job["headcode"]
-                            st.session_state.prefill_nguoibao = job["nguoibao"]
-                            st.session_state.prefill_congdoan = job["congdoan"]
-                            st.session_state.prefill_soluong  = str(sl) if sl != "" else ""
+                            st.session_state.prefill_headcode  = job["headcode"]
+                            st.session_state.prefill_nguoibao  = job["nguoibao"]
+                            st.session_state.prefill_congdoan  = job["congdoan"]
+                            st.session_state.prefill_soluong   = str(sl) if sl != "" else ""
+                            st.session_state.prefill_so_nguoi  = int(job.get("so_nguoi", 1))
                         st.rerun()
                     if st.session_state.get(f"owner_err_{jk}"):
                         st.warning("⚠️ Không phải mã của bạn")
