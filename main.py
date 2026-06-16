@@ -1044,6 +1044,16 @@ with col_scan:
             except ValueError:
                 soluong = None
 
+            # Ô nhập số người — chỉ hiện với nhóm KHÔNG PHẢI CTS
+            _nhom_cur = st.session_state.get("current_nhom", "").strip().upper()
+            so_nguoi = 1
+            if _nhom_cur != "CTS":
+                so_nguoi = st.number_input(
+                    "👥 Số người thực hiện",
+                    min_value=1, max_value=50, value=1, step=1,
+                    key=f"so_nguoi_{st.session_state.form_key}",
+                    help="Nhập số người cùng thực hiện mã này để chia đều giờ công")
+
             # Upload ảnh — chỉ hiển thị khi chế độ HOÀN THÀNH
             uploaded_img = None
             if is_active_live:
@@ -1122,6 +1132,8 @@ with col_scan:
                         "soluong":          soluong,
                         "nguoibao":         nguoibao,
                         "gio_bat_dau_str":  _gio_bd_str,
+                        "nhom":             st.session_state.get("current_nhom", ""),
+                        "so_nguoi":         so_nguoi,
                     }
                     with st.spinner("Đang ghi nhận bắt đầu..."):
                         ok, resp_data = call_api(payload)
@@ -1158,7 +1170,9 @@ with col_scan:
                                 "soluong":soluong,"nguoibao":nguoibao,
                                 "gio_bat_dau":job_info["gio_bat_dau"],
                                 "gio_hoan_thanh": _gio_ht_str,
-                                "row_id":job_info.get("row_id","")}
+                                "row_id":job_info.get("row_id",""),
+                                "nhom":   st.session_state.get("current_nhom", ""),
+                                "so_nguoi": so_nguoi}
                     with st.spinner("Đang cập nhật hoàn thành..."):
                         ok, resp_data = call_api(payload)
                     if ok and resp_data.get("status") == "ok":
