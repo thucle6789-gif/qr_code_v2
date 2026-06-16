@@ -1190,12 +1190,10 @@ with col_scan:
                     if ok and resp_data.get("status") == "ok":
                         del st.session_state.active_jobs[job_key]
                         # Hiển thị giờ công đã tính
-                        _ghc  = resp_data.get("gio_hc", 0)
-                        _gtc  = resp_data.get("gio_tc", 0)
-                        _nhom_dbg = resp_data.get("nhom_debug", "?")
-                        _sn_dbg   = resp_data.get("so_nguoi_debug", 1)
+                        _ghc = resp_data.get("gio_hc", 0)
+                        _gtc = resp_data.get("gio_tc", 0)
                         if _ghc or _gtc:
-                            st.info(f"⏱ HC: **{_ghc}h** | TC: **{_gtc}h** | Nhóm: {_nhom_dbg} | Số người: {_sn_dbg}")
+                            st.info(f"⏱ Giờ HC: **{_ghc}h** | 🌙 Giờ TC: **{_gtc}h**")
 
                         # Upload ảnh nếu người dùng đã chọn
                         if uploaded_img is not None:
