@@ -1142,6 +1142,8 @@ with col_scan:
                             "headcode":headcode,"congdoan":congdoan,"nguoibao":nguoibao,
                             "soluong":soluong,"gio_bat_dau":resp_data.get("gio_bat_dau",""),
                             "row_id":resp_data.get("row_id",""),
+                            "so_nguoi": so_nguoi,
+                            "nhom": st.session_state.get("current_nhom",""),
                         }
                         st.session_state.last_action = {"type":"start","headcode":headcode,"congdoan":congdoan}
                         st.session_state.qr_detected = ""; st.session_state.headcode_val = ""
@@ -1165,14 +1167,17 @@ with col_scan:
                     _gio_ht_str = _now_fin.replace(
                         hour=_ht_time.hour, minute=_ht_time.minute,
                         second=0, microsecond=0).strftime("%d/%m/%Y %H:%M:%S")
+                    # Lấy so_nguoi từ job_info (lưu lúc bấm Bắt đầu)
+                    # Không lấy từ form vì form có thể đã reset
+                    _so_nguoi_finish = job_info.get("so_nguoi", so_nguoi)
                     payload  = {"action":"finish","headcode":headcode,"congdoan":congdoan,
                                 "congdoan_tiep": congdoan_tiep,
                                 "soluong":soluong,"nguoibao":nguoibao,
                                 "gio_bat_dau":job_info["gio_bat_dau"],
                                 "gio_hoan_thanh": _gio_ht_str,
                                 "row_id":job_info.get("row_id",""),
-                                "nhom":   st.session_state.get("current_nhom", ""),
-                                "so_nguoi": so_nguoi}
+                                "nhom":   job_info.get("nhom", st.session_state.get("current_nhom","")),
+                                "so_nguoi": _so_nguoi_finish}
                     with st.spinner("Đang cập nhật hoàn thành..."):
                         ok, resp_data = call_api(payload)
                     if ok and resp_data.get("status") == "ok":
@@ -1276,11 +1281,13 @@ with col_active:
         else:
             for jk, job in list(filtered_jobs.items()):
                 # ── Thông tin job ──
+                _sn = job.get("so_nguoi", 1)
+                _sn_txt = f" | 👥 {_sn} người" if _sn and int(_sn) > 1 else ""
                 st.markdown(f"""
                 <div class="job-row">
                     <div class="job-headcode">{job['headcode']}</div>
                     <div class="job-meta">{job['congdoan']}</div>
-                    <div class="job-meta">👤 {job['nguoibao']} | 📦 {job.get('soluong',0)}</div>
+                    <div class="job-meta">👤 {job['nguoibao']} | 📦 {job.get('soluong',0)}{_sn_txt}</div>
                     <div class="job-meta" style="color:#64748b;font-size:0.72rem;">🕐 {job['gio_bat_dau']}</div>
                 </div>""", unsafe_allow_html=True)
     
