@@ -368,6 +368,14 @@ def call_api(payload):
     except Exception as ex:
         return False, {"message": str(ex)}
 
+def call_pause(row_id, headcode, congdoan, nguoibao):
+    return call_api({"action":"pause", "row_id":row_id, "headcode":headcode,
+                      "congdoan":congdoan, "nguoibao":nguoibao})
+
+def call_resume(row_id, headcode, congdoan, nguoibao):
+    return call_api({"action":"resume", "row_id":row_id, "headcode":headcode,
+                      "congdoan":congdoan, "nguoibao":nguoibao})
+
 def upload_image_to_sheet(row_id: str, headcode: str, congdoan: str,
                           nguoibao: str, image_bytes: bytes,
                           mime_type: str, file_name: str):
@@ -1305,10 +1313,41 @@ with col_active:
                     st.warning("⚠️ Mã hàng này không phải mã bạn đang làm")
                     st.session_state.pop(f"gio_err_{jk}", None)
     
-                # ── Hàng 2: Nút Xong ──
-                c_xong, _ = st.columns([1, 2])
+                # ── Hàng 2: Tạm dừng/Tiếp tục + Xong ──
+                _job_trangthai = job.get("trang_thai", "ĐANG LÀM")
+                c_pause, c_xong = st.columns([1, 1])
+                with c_pause:
+                    if _job_trangthai == "TẠM DỪNG":
+                        if st.button("▶ Tiếp tục", key=f"resume_btn_{jk}", use_container_width=True):
+                            job_nguoi   = job["nguoibao"].strip().lower()
+                            login_nguoi = st.session_state.current_ten.strip().lower()
+                            if job_nguoi == login_nguoi:
+                                with st.spinner("Đang tiếp tục..."):
+                                    ok, resp = call_resume(job.get("row_id",""), job["headcode"],
+                                                            job["congdoan"], job["nguoibao"])
+                                if ok and resp.get("status") == "ok":
+                                    st.session_state.active_jobs[jk]["trang_thai"] = "ĐANG LÀM"
+                                    st.rerun()
+                                else:
+                                    st.error(f"Lỗi: {resp.get('message','')}")
+                    else:
+                        if st.button("⏸ Tạm dừng", key=f"pause_btn_{jk}", use_container_width=True):
+                            job_nguoi   = job["nguoibao"].strip().lower()
+                            login_nguoi = st.session_state.current_ten.strip().lower()
+                            if job_nguoi == login_nguoi:
+                                with st.spinner("Đang tạm dừng..."):
+                                    ok, resp = call_pause(job.get("row_id",""), job["headcode"],
+                                                           job["congdoan"], job["nguoibao"])
+                                if ok and resp.get("status") == "ok":
+                                    st.session_state.active_jobs[jk]["trang_thai"] = "TẠM DỪNG"
+                                    st.rerun()
+                                else:
+                                    st.error(f"Lỗi: {resp.get('message','')}")
                 with c_xong:
-                    if st.button("✅ Xong", key=f"finish_btn_{jk}", use_container_width=True):
+                    _xong_disabled = (_job_trangthai == "TẠM DỪNG")
+                    if st.button("✅ Xong", key=f"finish_btn_{jk}", use_container_width=True,
+                                  disabled=_xong_disabled,
+                                  help="Tiếp tục trước khi hoàn thành" if _xong_disabled else None):
                         job_nguoi   = job["nguoibao"].strip().lower()
                         login_nguoi = st.session_state.current_ten.strip().lower()
                         if job_nguoi != login_nguoi:
