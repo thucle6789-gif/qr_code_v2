@@ -1205,8 +1205,9 @@ with col_scan:
 
                         # Upload ảnh nếu người dùng đã chọn
                         if uploaded_img is not None:
+                            # Ưu tiên dùng row_id từ response (chính xác nhất)
+                            _confirmed_row_id = resp_data.get("row_id") or job_info.get("row_id","")
                             raw_bytes = uploaded_img.getvalue()
-                            # Nén ảnh xuống dưới 900KB trước khi upload
                             with st.spinner("🗜️ Đang nén ảnh..."):
                                 img_bytes, mime = compress_image(raw_bytes, max_kb=900)
                             orig_kb = len(raw_bytes) / 1024
@@ -1216,7 +1217,7 @@ with col_scan:
                             fname     = f"{headcode}_{congdoan}_{nguoibao}.jpg".replace(" ","_")
                             with st.spinner("📤 Đang upload hình ảnh..."):
                                 img_result = upload_image_to_sheet(
-                                    job_info.get("row_id",""), headcode, congdoan,
+                                    _confirmed_row_id, headcode, congdoan,
                                     nguoibao, img_bytes, mime, fname)
                             if img_result.get("status") == "ok":
                                 st.success("🖼️ Đã ghi hình ảnh vào Sheet!")
