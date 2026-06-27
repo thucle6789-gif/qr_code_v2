@@ -1,15 +1,9 @@
-# File: .github/workflows/reboot_app.yml
-# Tự động reboot bằng cách push commit rỗng mỗi ngày 6:00 sáng GMT+7
-
 name: Auto Reboot Streamlit App
 
 on:
   schedule:
-    - cron: '0 23 * * *'  # 6:00 AM GMT+7 = 23:00 UTC hôm trước
-  workflow_dispatch:        # Cho phép chạy thủ công
-
-permissions:
-  contents: write           # Cần quyền write để push commit
+    - cron: '0 23 * * *'  # 6:00 AM GMT+7
+  workflow_dispatch:
 
 jobs:
   reboot:
@@ -18,11 +12,12 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Push empty commit to trigger redeploy
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "Auto Reboot"
+          git config user.email "reboot@auto.com"
+          git pull --rebase origin main
           git commit --allow-empty -m "chore: auto reboot $(date '+%Y-%m-%d %H:%M')"
-          git push
+          git push origin main
