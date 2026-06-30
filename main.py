@@ -324,7 +324,7 @@ DATA_CACHE_TTL = 86400
 def fetch_init_data(cache_version: int = 0):
     _ = cache_version  # Chỉ dùng để bust cache
     try:
-        resp = requests.get(WEB_APP_URL, params={"action":"init"}, timeout=12)
+        resp = requests.get(WEB_APP_URL, params={"action":"init"}, timeout=30)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("status") == "ok":
@@ -345,7 +345,7 @@ def fetch_init_data(cache_version: int = 0):
 
 def fetch_active_jobs_from_sheet():
     try:
-        resp = requests.get(WEB_APP_URL + "?action=get_active", timeout=12)
+        resp = requests.get(WEB_APP_URL + "?action=get_active", timeout=30)
         if resp.status_code == 200:
             jobs = {}
             for item in resp.json().get("active_jobs", []):
@@ -361,7 +361,7 @@ def fetch_active_jobs_from_sheet():
 
 def call_api(payload):
     try:
-        resp = requests.post(WEB_APP_URL, json=payload, timeout=12)
+        resp = requests.post(WEB_APP_URL, json=payload, timeout=30)
         if resp.status_code == 200:
             return True, resp.json()
         return False, {"message": f"HTTP {resp.status_code}"}
@@ -391,7 +391,7 @@ def upload_image_to_sheet(row_id: str, headcode: str, congdoan: str,
             "image_base64": b64,
             "mime_type":    mime_type,
             "file_name":    file_name,
-        }, timeout=12)
+        }, timeout=30)
         if resp.status_code == 200:
             return resp.json()
     except Exception as ex:
@@ -406,7 +406,7 @@ def api_change_password(user: str, old_pass: str, new_pass: str):
             "user":     user,
             "old_pass": old_pass,
             "new_pass": new_pass,
-        }, timeout=12)
+        }, timeout=30)
         if resp.status_code == 200:
             return resp.json()
     except Exception as ex:
@@ -428,7 +428,7 @@ def lookup_in_cache(headcode: str) -> dict:
     try:
         resp = requests.get(WEB_APP_URL,
             params={"action": "lookup_headcode", "headcode": hc},
-            timeout=12)
+            timeout=30)
         if resp.status_code == 200:
             data = resp.json()
             if data.get("status") == "found":
@@ -444,7 +444,7 @@ def lookup_in_cache(headcode: str) -> dict:
 
 def do_login(user: str, password: str):
     try:
-        resp = requests.get(WEB_APP_URL, params={"action":"login","user":user,"pass":password}, timeout=12)
+        resp = requests.get(WEB_APP_URL, params={"action":"login","user":user,"pass":password}, timeout=30)
         if resp.status_code == 200:
             return resp.json()
     except Exception:
@@ -469,7 +469,7 @@ def get_user_nhom(user: str) -> str:
 
 def search_qr_log(query: str):
     try:
-        resp = requests.get(WEB_APP_URL, params={"action":"search","query":query.strip()}, timeout=12)
+        resp = requests.get(WEB_APP_URL, params={"action":"search","query":query.strip()}, timeout=30)
         if resp.status_code == 200:
             return resp.json().get("results", [])
     except Exception:
